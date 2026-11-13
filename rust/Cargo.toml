@@ -1,0 +1,15 @@
+[package]
+name = "flutter-engineering-guardrails"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.96"
+description = "Dependency-free, read-only Flutter/Dart heuristic audit and verification runner"
+license = "MIT"
+
+[[bin]]
+name = "flutter-rails-audit"
+path = "src/bin/audit.rs"
+
+[[bin]]
+name = "flutter-rails-check"
+path = "src/bin/check.rs"

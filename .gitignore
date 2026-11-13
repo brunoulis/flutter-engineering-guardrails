@@ -1,0 +1,11 @@
+# Cargo build output
+/rust/target/
+
+# Audit reports generated locally
+flutter-rails-audit*.json
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

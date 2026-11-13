@@ -1,0 +1,38 @@
+# Ejemplo para copiar a <tu-proyecto>/.flutter-rails.yaml
+# Contrato declarativo leído por el agente; ningún script lo procesa automáticamente.
+# Valores ilustrativos: reemplazar por los del repositorio real.
+version: 1
+project:
+  name: "my_flutter_project"
+  platforms: [web, windows]
+  min_sdk_source: "pubspec.yaml" # No inventar versiones; leer el archivo.
+  code_owner: "existing_team"
+architecture:
+  preferred_state: "provider_change_notifier_viewmodel"
+  routing: "detect_existing"  # p.ej. go_router / Navigator / GetX
+  layout: "existing_feature_structure"
+  dependency_injection: "existing_provider_constructors"
+  allow_new_architecture_only_with_evidence: true
+  repository_layer: "when_data_boundary_needs_it"
+  domain_use_cases: "optional_not_default"
+  separate_packages: "analyze_before_separating"
+ui:
+  responsive_breakpoint_px: 980 # EJEMPLO de un breakpoint ya existente, NO valor general.
+  breakpoint_policy: "preserve_existing_until_ui_spec_changes"
+  tokens: "follow_existing_theme"
+  accessibility: true
+  supported_input: [mouse, keyboard]
+quality:
+  preserve_public_contracts: true
+  prohibit_silent_behavior_changes: true
+  no_new_dependencies_without_approval: true
+  avoid_repo_wide_auto_fixes: true
+  lint_policy: "honor_analysis_options"
+  refactor_mode_default: "incremental"
+  add_characterization_tests_before_risky_refactor: true
+verification:
+  format: true
+  analyze: true
+  tests: "targeted_then_expand_by_risk"
+  browser_integration: "run_when_available"
+  report_unverified_as_unverified: true
