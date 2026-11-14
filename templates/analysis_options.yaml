@@ -1,0 +1,32 @@
+# Suggested analyzer setup that covers the guardrails' static checks.
+# Merge into <your-project>/analysis_options.yaml ONLY when the user asks for it;
+# never add it on your own initiative. On a legacy project, measure the baseline
+# first and enable new rules in a separate PR (see references/quality-gates-and-ci.md).
+#
+# Rails covered by flutter_lints (already included below):
+#   use_build_context_synchronously  -> await followed by context/Navigator use (R4)
+#   avoid_print                      -> print() in production code (R8)
+#   empty_catches                    -> swallowed exceptions (R4)
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.gr.dart"
+    - "**/*.mocks.dart"
+  # Opt-in: stricter typing. Expect many new diagnostics in older code.
+  # language:
+  #   strict-casts: true
+  #   strict-inference: true
+  #   strict-raw-types: true
+
+linter:
+  rules:
+    - avoid_void_async        # e.g. `void initState() async` (R4)
+    - cancel_subscriptions    # StreamSubscription fields never cancelled (R3/R4)
+    - close_sinks             # StreamController/Sink fields never closed (R3/R4)
+    - discarded_futures       # Future-returning call in a sync function (R4)
+    - unawaited_futures       # Future not awaited inside an async function (R4)
+    - avoid_dynamic_calls     # member access on `dynamic`, typical of raw JSON maps (R8)

@@ -1,49 +1,49 @@
-# Plan de refactor — [feature/archivo]
+# Refactor plan — [feature/file]
 
-**Modo:** refactor | deep-refactor
-**Cambio de comportamiento permitido:** NO (si SÍ, reclasificar como feature/migración)
+**Mode:** refactor | deep-refactor
+**Behavior change allowed:** NO (if YES, reclassify as feature/migration)
 
-## 1. Necesidad y evidencia
-- Problema: [bug/duplicación/acoplamiento/ownership/UX/performance]
-- Evidencia con `ruta:línea` o test/trace:
-- Impacto observable:
-- Objetivo mínimo medible:
+## 1. Need and evidence
+- Problem: [bug/duplication/coupling/ownership/UX/performance]
+- Evidence with `path:line` or test/trace:
+- Observable impact:
+- Minimal measurable goal:
 
-## 2. Contratos que se preservan
-- Entradas / salidas:
+## 2. Preserved contracts
+- Inputs / outputs:
 - Loading/empty/error/success:
-- Rutas/back/deeplinks:
-- API, serialización y persistencia:
+- Routes/back/deep links:
+- API, serialization and persistence:
 - Responsive/design/tokens/a11y:
 
-## 3. Alternativas
-| Opción | Beneficio | Riesgo | Decisión |
+## 3. Alternatives
+| Option | Benefit | Risk | Decision |
 |---|---|---|---|
-| No modificar todavía | ... | ... | ... |
-| Extraer mínimo en sitio | ... | ... | ... |
-| Rediseñar feature/layer | ... | ... | ... |
+| Do not modify yet | ... | ... | ... |
+| Minimal in-place extraction | ... | ... | ... |
+| Redesign feature/layer | ... | ... | ... |
 
-## 4. Slices reversibles
-| Slice | Archivos | Cambio aislado | Test previo | Criterio PASS | Rollback |
+## 4. Reversible slices
+| Slice | Files | Isolated change | Prior test | PASS criterion | Rollback |
 |---|---|---|---|---|---|
 | 1 | ... | ... | ... | ... | ... |
 
-## 5. Review de riesgos
-- Carreras/await/dispose/listeners:
-- Estado/routing/provider scope:
-- Datamodel/edge cases/errores:
-- Compatibilidad web/desktop:
-- Dependencias nuevas (justificación):
+## 5. Risk review
+- Races/await/dispose/listeners:
+- State/routing/provider scope:
+- Data model/edge cases/errors:
+- Web/desktop compatibility:
+- New dependencies (justification):
 
-## 6. Antes → después
-- Responsabilidades removidas:
-- Responsabilidades añadidas:
-- Complejidad neta y clases nuevas:
-- Deuda que sigue presente por decisión explícita:
+## 6. Before → after
+- Responsibilities removed:
+- Responsibilities added:
+- Net complexity and new classes:
+- Debt still present by explicit decision:
 
-## 7. Pruebas ejecutadas (solo hechos)
-- [ ] Formato — comando y resultado
-- [ ] Analyzer — comando y resultado
-- [ ] Unit/widget tests — comandos y resultado
-- [ ] Integration/manual — condiciones reales
-- [ ] Métricas antes/después — medidas o «no medido»
+## 7. Tests run (facts only)
+- [ ] Format — command and result
+- [ ] Analyzer — command and result
+- [ ] Unit/widget tests — commands and result
+- [ ] Integration/manual — actual conditions
+- [ ] Before/after metrics — measurements or "not measured"

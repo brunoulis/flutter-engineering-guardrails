@@ -1,47 +1,47 @@
-# Revisión adversarial de código Flutter y evaluación con evidencia
+# Adversarial Flutter code review and evidence-based assessment
 
-## La revisión no debe limitarse a encontrar lint warnings
+## Review must not be limited to finding lint warnings
 
-El revisor actúa como mantenedor: busca *errores reales y coste futuro*, no si la IA siguió un estilo arbitrario. Si existen varias soluciones válidas, debe explicar trade-offs en vez de declarar «incorrecta» la alternativa.
+The reviewer acts as a maintainer: looking for *real errors and future cost*, not whether the AI followed an arbitrary style. If there are several valid solutions, explain the trade-offs instead of declaring the alternative "incorrect".
 
-### Cinco pasadas
+### Five passes
 
-1. **Correctitud:** contrato, casos límite, null-safety, parse, permisos, `Result`, estados posibles e invariantes.
-2. **Ciclo y concurrencia:** ownership/dispose, `await`, respuesta obsoleta, doble tap, navegación async, recursión y streams.
-3. **Arquitectura:** separación donde aporta valor, dependencias, duplicación significativa, single source of truth, «abstracción innecesaria».
-4. **Experiencia y rendimiento:** loading/error/empty, responsive, a11y, list builders, trabajo en build, jank medible.
-5. **Pruebas y entrega:** regresiones, tests del límite, analyzer, alcance de diff, rollback y documentación de decisiones.
+1. **Correctness:** contract, edge cases, null-safety, parsing, permissions, `Result`, possible states and invariants.
+2. **Lifecycle and concurrency:** ownership/dispose, `await`, stale response, double tap, async navigation, recursion and streams.
+3. **Architecture:** separation where it adds value, dependencies, significant duplication, single source of truth, "unnecessary abstraction".
+4. **Experience and performance:** loading/error/empty, responsive, a11y, list builders, work in build, measurable jank.
+5. **Tests and delivery:** regressions, boundary tests, analyzer, diff scope, rollback and documentation of decisions.
 
-### Hallazgos con prioridad
+### Prioritized findings
 
-Ordena por **P0 a P3** (definición en `refactor-audit.md`). Para cada hallazgo incluye ubicación, escenario, impacto, cambio mínimo y prueba que demostraría su corrección. No llenar un review con asuntos cosméticos si hay un error grave.
+Order by **P0 to P3** (defined in `refactor-audit.md`). For each finding include location, scenario, impact, minimal change and the test that would prove the fix. Do not fill a review with cosmetic issues if there is a serious error.
 
-## Calidad multidimensional (opcional, no es un número mágico)
+## Multidimensional quality (optional, not a magic number)
 
-| Dimensión | 0 | 1 | 2 | 3 |
+| Dimension | 0 | 1 | 2 | 3 |
 |---|---|---|---|---|
-| Correctitud/errores | Bugs reproducidos sin tratar | Rutas críticas sin manejo | Contrato mayormente cubierto | Contratos y edge cases verificados |
-| Async y lifecycle | Fugas/carreras demostradas | Ownership ambiguo | Cleanup razonable | Cleanup y races comprobados |
-| Claridad/modularidad | Flujo inabordable | Dependencias confusas | Responsabilidades legibles | Complejidad neta baja y límites claros |
-| Pruebas | Ausentes en rutas críticas | Solo happy path | Casos importantes cubiertos | Regresiones y negativos comprobados |
-| UI/a11y/responsive | Flujos bloqueados | Fragilidades visibles | Usable en targets | Comprobación de edge cases |
-| Performance | Problema medido grave | Sospecha sin medir | Sin problema conocido | Medición adecuada y regresión controlada |
+| Correctness/errors | Reproduced bugs left untreated | Critical paths without handling | Contract mostly covered | Contracts and edge cases verified |
+| Async and lifecycle | Demonstrated leaks/races | Ambiguous ownership | Reasonable cleanup | Cleanup and races checked |
+| Clarity/modularity | Unapproachable flow | Confusing dependencies | Readable responsibilities | Low net complexity and clear boundaries |
+| Tests | Absent on critical paths | Happy path only | Important cases covered | Regressions and negatives checked |
+| UI/a11y/responsive | Blocked flows | Visible fragility | Usable on targets | Edge cases checked |
+| Performance | Serious measured problem | Unmeasured suspicion | No known problem | Adequate measurement and controlled regression |
 
-**Reglas de puntuación:** solo asignar 0–3 con evidencia concreta por dimensión; si no hay datos escribir `N/E (no evaluado)`. No sumar a «89/100», no confundir impresión con dato ni comparar repos por esta tabla.
+**Scoring rules:** only assign 0–3 with concrete evidence per dimension; if there is no data write `N/E (not evaluated)`. Do not sum to "89/100", do not confuse impression with data, and do not compare repos using this table.
 
-## Preguntas obligatorias antes de aprobar un refactor
+## Mandatory questions before approving a refactor
 
-- ¿La app hace lo mismo antes y después según pruebas/caracterización?
-- ¿Se ha reducido complejidad o se ha desplazado a más archivos?
-- ¿Los nuevos límites tienen responsabilidad única demostrable?
-- ¿La elección de estado/navegación es coherente con el proyecto?
-- ¿El usuario podrá mantener esto sin pedir a una IA que reconstruya el contexto de 15 capas?
-- ¿Hay algo que se podría **no** refactorizar por ahora?
+- Does the app behave the same before and after according to tests/characterization?
+- Has complexity been reduced or just moved into more files?
+- Do the new boundaries have a demonstrable single responsibility?
+- Is the state/navigation choice consistent with the project?
+- Will the user be able to maintain this without asking an AI to reconstruct the context of 15 layers?
+- Is there anything that could be left **un**refactored for now?
 
-## Comentario de code review útil
+## Useful code review comment
 
-**Malo:** «Usa Clean Architecture, divide en 6 capas». 
+**Bad:** "Use Clean Architecture, split into 6 layers". 
 
-**Bueno:** «En `lib/features/search/search_vm.dart:88`, la llamada A puede terminar después de B y sobrescribir resultados. Reproducción con dos completers; propongo comprobar ID de solicitud antes de publicar estado, sin cambiar Provider». 
+**Good:** "In `lib/features/search/search_vm.dart:88`, call A can finish after B and overwrite the results. Reproduced with two completers; I propose checking the request ID before publishing state, without changing Provider". 
 
-Utiliza [`../templates/review-checklist.md`](../templates/review-checklist.md) como checklist final cuando el cambio sea grande.
+Use [`../templates/review-checklist.md`](../templates/review-checklist.md) as the final checklist when the change is large.

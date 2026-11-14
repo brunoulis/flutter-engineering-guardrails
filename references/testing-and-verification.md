@@ -1,59 +1,59 @@
-# Estrategia de pruebas y validación por riesgo
+# Risk-based testing and validation strategy
 
-Guía oficial: https://docs.flutter.dev/testing/overview. Flutter distingue tests unitarios, de widgets e integración; combinar según el coste y la criticidad. Nunca declarar cobertura no medida.
+Official guide: https://docs.flutter.dev/testing/overview. Flutter distinguishes unit, widget and integration tests; combine them according to cost and criticality. Never claim coverage that was not measured.
 
-## Gate progresivo
+## Progressive gate
 
-| Cambio | Comprobación mínima sugerida | Ampliar cuando... |
+| Change | Suggested minimum check | Expand when... |
 |---|---|---|
-| Texto/estilo pequeño | `dart format`/analyzer parcial + inspección visual | Responsive/a11y o layout frágil |
-| Función pura | Unit tests + analyze | Tiene decisiones de negocio |
-| Formulario/ViewModel | Unit tests de estado y error + widget test de interacción | Valida, navega, persiste o usa varias requests |
-| Controlador/stream/listener | Lifecycle test: crear, usar, desmontar, volver | Hay timers, cancelaciones, race conditions |
-| Routing/deep links | Widget/integration test de entrada/back/params | Web/history/auth guard |
-| Servicio/API | Contract/parse tests para éxito/error/malformed | Tiene retry, paginación, caché o auth |
-| Refactor de feature | Characterization/regression antes/después | Cambia múltiples componentes |
-| Migración de arquitectura | Contract parity + integration/regression + rollback | Cambia persistencia, sesión, auth, navegador |
-| Rendimiento | Profiling comparable antes/después | El problema depende de dispositivo y escala |
+| Small text/style | `dart format`/partial analyzer + visual inspection | Responsive/a11y or fragile layout |
+| Pure function | Unit tests + analyze | It has business decisions |
+| Form/ViewModel | Unit tests for state and errors + widget test for interaction | It validates, navigates, persists or uses several requests |
+| Controller/stream/listener | Lifecycle test: create, use, unmount, return | There are timers, cancellations, race conditions |
+| Routing/deep links | Widget/integration test for entry/back/params | Web/history/auth guard |
+| Service/API | Contract/parse tests for success/error/malformed | It has retry, pagination, cache or auth |
+| Feature refactor | Characterization/regression before/after | It changes multiple components |
+| Architecture migration | Contract parity + integration/regression + rollback | It changes persistence, session, auth, navigator |
+| Performance | Comparable profiling before/after | The problem depends on device and scale |
 
-## Comandos de ejemplo — siempre ajustar al repo
+## Example commands — always adjust to the repo
 
 ```bash
-# Lectura / sin mutación de fuente
+# Read-only / no source mutation
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze
 flutter test test/features/orders/order_view_model_test.dart
-flutter test # si el alcance lo justifica y los tests existen
+flutter test # if the scope justifies it and the tests exist
 
-dart fix --dry-run # ver cambios automáticos propuestos; NO aplica
+dart fix --dry-run # see proposed automatic changes; does NOT apply them
 ```
 
-Al usar subdirectorios con `dart format`, pasar solo los que existen. `flutter test` y `flutter analyze` requieren SDK/dependencias adecuados; informar si no están disponibles. Las herramientas pueden crear artefactos temporales de build aunque no cambien fuentes.
+When passing subdirectories to `dart format`, pass only those that exist. `flutter test` and `flutter analyze` require a suitable SDK/dependencies; report if they are unavailable. The tools can create temporary build artifacts even if they do not change sources.
 
-## Pruebas de caracterización para refactors
+## Characterization tests for refactors
 
-1. Registrar el comportamiento **real**, incluidos los comportamientos raros que sean contratos vigentes (si son bugs, separarlos).
-2. Generar inputs representativos y edge cases: vacío, nulo, inválido, duplicado, reintento, red lenta, orden inverso, cancelación/desmontaje.
-3. Usar fakes deterministas, no requests reales ni sleeps arbitrarios donde se puede controlar Futures/streams.
-4. Verificar outputs y efectos visibles, no nombres de métodos privados ni estructura de widgets internos sin necesidad.
-5. Solo después cambiar diseño, manteniendo tests verdes; actualizar tests únicamente por cambios de contrato aprobados.
+1. Record the **real** behavior, including odd behaviors that are current contracts (if they are bugs, separate them).
+2. Generate representative inputs and edge cases: empty, null, invalid, duplicate, retry, slow network, reverse order, cancellation/unmount.
+3. Use deterministic fakes, not real requests or arbitrary sleeps where Futures/streams can be controlled.
+4. Verify outputs and visible effects, not private method names or internal widget structure without need.
+5. Only then change the design, keeping tests green; update tests only for approved contract changes.
 
-## No esconder regresiones
+## Do not hide regressions
 
-- No introducir `skip`, supresión masiva de lints o mocks que eliminen el comportamiento bajo prueba.
-- Diferenciar **fallo preexistente**, **nuevo fallo**, **test no ejecutado**, **test no disponible**.
-- Cuando un golden falla, inspeccionar el render real y la causa, no regenerarlo ciegamente.
-- Analizar flaky tests por sincronización, reloj, animaciones, mock dependencies y async pending.
-- En CI, separar checks obligatorios del informe heurístico (que puede tener falsos positivos).
+- Do not introduce `skip`, mass lint suppression or mocks that remove the behavior under test.
+- Distinguish **pre-existing failure**, **new failure**, **test not run**, **test not available**.
+- When a golden fails, inspect the real render and the cause; do not regenerate it blindly.
+- Analyze flaky tests for synchronization, clock, animations, mock dependencies and pending async.
+- In CI, separate mandatory checks from the heuristic report (which can have false positives).
 
-## Reporte de verificación honesto
+## Honest verification report
 
 ```text
-Formato: PASS — dart format --output=none --set-exit-if-changed lib test
+Format: PASS — dart format --output=none --set-exit-if-changed lib test
 Analyzer: PASS — flutter analyze
 Tests: PASS — flutter test test/features/order_flow_test.dart
-Integración: NOT RUN — requiere navegador/credenciales de test
-Riesgo residual: historial/back de ruta /orders no comprobado manualmente
+Integration: NOT RUN — requires browser/test credentials
+Residual risk: history/back for route /orders not checked manually
 ```
 
-Solo imprimir `PASS` si el agente ejecutó el comando y comprobó exit code 0.
+Only print `PASS` if the agent ran the command and confirmed exit code 0.

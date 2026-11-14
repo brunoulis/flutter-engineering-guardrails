@@ -1,17 +1,17 @@
-# Rails automáticos vs revisión: quality gates proporcionales
+# Automatic rails vs review: proportional quality gates
 
-**Importante:** `SKILL.md` da instrucciones al agente; no ejecuta automáticamente controles. Para convertir esas políticas en **enforcement**, el proyecto debe integrar CI/hook/scripts con autoridad explícita. Nunca afirmar que la skill «garantiza» la calidad del código.
+**Important:** `SKILL.md` gives instructions to the agent; it does not run checks automatically. To turn these policies into **enforcement**, the project must integrate CI/hooks/scripts with explicit authority. Never claim that the skill "guarantees" code quality.
 
-## Nivel 1 — Feedback rápido (durante la tarea)
+## Level 1 — Fast feedback (during the task)
 
-- Consultar diagnósticos concretos del IDE / Dart MCP si existen.
-- Analizar el archivo o feature afectada y probar la lógica relevante.
-- Ejecutar `dart fix --dry-run` solo cuando hay lints/fixes que revisar.
-- Evitar format/lint de todo el repo en hotfix que produciría miles de líneas de ruido.
+- Query concrete diagnostics from the IDE / Dart MCP if available.
+- Analyze the affected file or feature and test the relevant logic.
+- Run `dart fix --dry-run` only when there are lints/fixes to review.
+- Avoid formatting/linting the whole repo in a hotfix that would produce thousands of lines of noise.
 
-## Nivel 2 — Pull request (definir en CI del repositorio)
+## Level 2 — Pull request (define in the repository's CI)
 
-Ejemplo de comandos **a adaptar**:
+Example commands **to adapt**:
 
 ```bash
 dart format --output=none --set-exit-if-changed lib test
@@ -19,34 +19,40 @@ flutter analyze --no-pub
 flutter test --no-pub
 ```
 
-La opción `--no-pub` presupone dependencias ya obtenidas; el pipeline puede incorporar una fase separada de `flutter pub get` con caché/lockfile bajo sus propias políticas.
+The `--no-pub` option assumes dependencies have already been fetched; the pipeline can add a separate `flutter pub get` stage with cache/lockfile under its own policies.
 
-- Un PR debería bloquearse por fallos de formato, análisis estricto configurado y tests relevantes cuando el entorno lo permite.
-- La auditoría heurística es **informativa**, no gate automático de bloqueo (falsos positivos).
-- No publicar métricas «0 warnings» si no se midió el conjunto correspondiente.
+Exit codes differ: `dart analyze` fails on errors and warnings but not on *info* diagnostics by default (`--fatal-infos` to fail on them); `flutter analyze` also fails on *info* unless `--no-fatal-infos` is passed. Pick the behavior deliberately and document it in CI.
 
-## Nivel 3 — Cambios críticos / release
+- A PR should be blocked by formatting failures, the configured strict analysis and relevant tests when the environment allows it.
+- Pattern searches for heuristic signals (see [refactor-audit](refactor-audit.md)) are **informative**, not an automatic blocking gate (false positives). If a signal matters enough to block, prefer an analyzer lint that covers it.
+- Do not publish "0 warnings" metrics if the corresponding set was not measured.
 
-- Tests contractuales de autenticación, permisos, persistencia, flujos críticos y errores.
-- Widget/integración para rutas y escenarios de teclado, web/desktop o móvil según targets.
-- Observabilidad y DevTools cuando hay cambios de rendimiento o memory.
-- Plan/feature flag/rollback para migraciones amplias.
+## Recommended lints
 
-## Baseline en proyectos heredados
+[`../templates/analysis_options.yaml`](../templates/analysis_options.yaml) extends `flutter_lints` with lints that map to the guardrails: `avoid_void_async`, `cancel_subscriptions`, `close_sinks`, `discarded_futures`, `unawaited_futures` and `avoid_dynamic_calls` (`flutter_lints` already provides `use_build_context_synchronously`, `avoid_print` and `empty_catches`). The strict typing modes are left as opt-in comments. Adopt it through the baseline process below, never as a silent drive-by change.
 
-1. Medir warnings/errores **existentes** sin modificarlos.
-2. Bloquear introducción de **nuevos** errores en áreas tocadas mientras se reduce gradualmente el baseline existente.
-3. Escoger lints prioritarios por corrección y mantenibilidad, no maximizar recuento de reglas.
-4. Usar lints nuevos mediante PR separado con justificación y auto-fix previsualizado.
-5. No excluir todo el código viejo sin dejar ownership ni fecha de revisión.
+## Level 3 — Critical changes / release
 
-## Plantilla de política de revisión
+- Contract tests for authentication, permissions, persistence, critical flows and errors.
+- Widget/integration tests for routes and keyboard, web/desktop or mobile scenarios depending on targets.
+- Observability and DevTools when there are performance or memory changes.
+- Plan/feature flag/rollback for broad migrations.
+
+## Baseline in legacy projects
+
+1. Measure **existing** warnings/errors without modifying them.
+2. Block the introduction of **new** errors in touched areas while gradually reducing the existing baseline.
+3. Choose priority lints for correctness and maintainability, not to maximize the rule count.
+4. Introduce new lints through a separate PR with justification and a previewed auto-fix (`dart fix --dry-run`).
+5. Do not exclude all old code without leaving ownership and a review date.
+
+## Review policy template
 
 ```text
-Para cambios Dart/Flutter:
-- El agente debe aplicar flutter-engineering-guardrails.
-- Prohibido cambiar state-management, routing, paquetes o contratos en un refactor local sin justificación.
-- Las modificaciones grandes requieren characterization tests y plan de slices.
-- Antes de aprobar, CI debe ejecutar format/analyze/test según el tipo de cambio.
-- No se aceptan claims de rendimiento sin medición ni tests inventados.
+For Dart/Flutter changes:
+- The agent must apply flutter-engineering-guardrails.
+- Changing state management, routing, packages or contracts in a local refactor without justification is forbidden.
+- Large modifications require characterization tests and a slice plan.
+- Before approval, CI must run format/analyze/test according to the type of change.
+- Performance claims without measurement and invented tests are not accepted.
 ```

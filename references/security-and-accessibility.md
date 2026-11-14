@@ -1,27 +1,27 @@
-# Seguridad, privacidad y accesibilidad para Flutter
+# Security, privacy and accessibility for Flutter
 
-## Seguridad basada en superficies reales
+## Security based on real surfaces
 
-- **Tokens y secretos:** no poner secretos de servidor en `--dart-define`, assets, `pubspec.yaml` o cliente Flutter como si fueran confidenciales; un binario o cliente web puede exponerlos. Definir credenciales seguras en backend.
-- **Autorización:** validaciones UI no sustituyen validación/permiso de servidor. No aceptar IDs de recurso como prueba de permisos.
-- **Almacenamiento:** seleccionar mecanismo apropiado para plataforma y sensibilidad; no persistir tokens sensibles en almacenamiento web plano sin evaluar riesgos.
-- **Red:** comprobar HTTP status/timeout/errores, parsear forma del JSON y limitar datos en logs. No desactivar TLS ni aceptar certificados sin validación.
-- **Links y navegación:** validar URLs/deep links antes de ejecutar acciones y respetar auth/session de ruta.
-- **Logs:** no registrar contraseñas, tokens, datos personales o cuerpos sensibles; no lanzar errores técnicos crudos a usuarios.
-- **Dependencias:** verificar mantenimiento, license, compatibilidad, necesidad y permisos antes de añadir un paquete.
+- **Tokens and secrets:** do not put server secrets in `--dart-define`, assets, `pubspec.yaml` or the Flutter client as if they were confidential; a binary or web client can expose them. Keep secure credentials on the backend.
+- **Authorization:** UI validations do not replace server-side validation/permissions. Do not accept resource IDs as proof of permission.
+- **Storage:** choose a mechanism appropriate to the platform and sensitivity; do not persist sensitive tokens in plain web storage without assessing the risks.
+- **Network:** check HTTP status/timeouts/errors, parse the JSON shape and limit data in logs. Do not disable TLS or accept certificates without validation.
+- **Links and navigation:** validate URLs/deep links before executing actions and respect route auth/session.
+- **Logs:** do not log passwords, tokens, personal data or sensitive bodies; do not surface raw technical errors to users.
+- **Dependencies:** verify maintenance, license, compatibility, need and permissions before adding a package.
 
-## Accesibilidad y usabilidad
+## Accessibility and usability
 
-Ver https://docs.flutter.dev/ui/accessibility.
+See https://docs.flutter.dev/ui/accessibility.
 
-- Texto legible a escala del SO/navegador, contraste apropiado y adaptación a contenido largo.
-- Semantics/labels/hints para controles solo-ícono e interacciones no obvias.
-- Foco visible y orden de tabulación correcto; escape/volver/cerrar accesible con teclado en Web/desktop.
-- Áreas táctiles adecuadas cuando es una app móvil, sin sacrificar densidad en desktop si hay otra interacción accesible.
-- No usar exclusivamente color para representar estado (semáforos), especialmente en avisos/errores. Añadir texto/ícono semántico.
-- Evitar bloqueo con overlays/modales sin forma de cerrarlos o recuperar foco.
-- Probar lector de pantalla/semantics cuando es una parte crítica del flujo y la plataforma lo permite.
+- Text readable at OS/browser scale, appropriate contrast and adaptation to long content.
+- Semantics/labels/hints for icon-only controls and non-obvious interactions.
+- Visible focus and correct tab order; escape/back/close reachable by keyboard on Web/desktop.
+- Adequate touch targets for mobile apps, without sacrificing density on desktop if another accessible interaction exists.
+- Do not use color alone to represent state (traffic lights), especially in warnings/errors. Add semantic text/icon.
+- Avoid blocking with overlays/modals that cannot be closed or that do not restore focus.
+- Test screen reader/semantics when it is a critical part of the flow and the platform allows it.
 
-## Rails de revisión
+## Review rails
 
-Las alertas de seguridad y accesibilidad con impacto demostrado tienen prioridad sobre los ajustes de naming o preferencias de estilo. No sugerir cambios de paquetes/autenticación a ciegas: inspeccionar plataforma, backend y contratos reales.
+Security and accessibility alerts with demonstrated impact take priority over naming tweaks or style preferences. Do not suggest package/authentication changes blindly: inspect the real platform, backend and contracts.

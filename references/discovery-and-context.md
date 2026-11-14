@@ -1,60 +1,60 @@
-# Reconocimiento del repositorio antes de modificar Flutter
+# Repository discovery before modifying Flutter code
 
-**Objetivo:** conseguir una fotografía concreta del código existente; el agente no debe sustituirla por sus preferencias.
+**Goal:** get a concrete snapshot of the existing code; the agent must not replace it with its own preferences.
 
-## 1. Inspección mínima (lectura, sin efectos destructivos)
+## 1. Minimal inspection (read-only, no destructive effects)
 
-Desde la raíz del paquete Flutter correcto:
+From the root of the correct Flutter package:
 
 ```bash
 git status --short
 git branch --show-current
 find . -maxdepth 3 \( -name pubspec.yaml -o -name analysis_options.yaml \) -print
-flutter --version             # si disponible
+flutter --version             # if available
 rg -n 'provider:|flutter_bloc:|riverpod:|get:|go_router:|auto_route:' pubspec.yaml
 rg -n 'class .*ViewModel|extends ChangeNotifier|Consumer<|context.watch|BlocBuilder|ref.watch' lib
 rg -n 'Navigator\.|Get\.(to|back|off)|GoRouter|context\.go\(' lib
 find test integration_test -type f -name '*.dart' 2>/dev/null | wc -l
 ```
 
-- Si hay monorepo, identifica el **paquete** de la tarea en vez de asumir que el root es una aplicación.
-- Los comandos anteriores son **ejemplos**: si `rg`, `flutter` o `git` no están, recurre a herramientas equivalentes y deja constancia.
-- No mezcles archivos generados (`*.g.dart`, `*.freezed.dart`), checkout, lockfile ni migraciones automáticas salvo necesidad explícita.
-- No leas ni publiques archivos `.env`, secretos, claves o credenciales sin necesidad para la tarea.
+- In a monorepo, identify the task's **package** instead of assuming the root is an app.
+- The commands above are **examples**: if `rg`, `flutter` or `git` are missing, fall back to equivalent tools and record it.
+- Do not mix in generated files (`*.g.dart`, `*.freezed.dart`), checkout, lockfile or automatic migrations unless explicitly needed.
+- Do not read or publish `.env` files, secrets, keys or credentials unless the task requires it.
 
-## 2. Mapa mínimo de contexto
+## 2. Minimal context map
 
-Recoge solo lo pertinente:
+Collect only what is relevant:
 
-| Aspecto | Cuestión |
+| Aspect | Question |
 |---|---|
-| SDK | Dart/Flutter admitidos por `pubspec.yaml`; capacidades realmente disponibles |
-| Estado | ¿Local, compartido en feature, o de toda la app? ¿Quién lo crea y destruye? |
-| UI | ¿Theme/Design System, widget reutilizable, texto, localización, responsive? |
-| Red y datos | ¿Dónde se serializa/valida JSON? ¿Errores HTTP, auth, caché? |
-| Navegación | ¿Un router principal, deep links, back stack, guards? |
-| Tests | ¿Tests vigentes, escenarios manuales, flaky tests, coverage real? |
-| Plataforma | Web, Windows/macOS/Linux, Android/iOS, tamaños relevantes |
-| Release | Restricciones de plazos, compatibilidad, flags, flujos críticos |
+| SDK | Dart/Flutter supported by `pubspec.yaml`; capabilities actually available |
+| State | Local, shared within a feature, or app-wide? Who creates and destroys it? |
+| UI | Theme/Design System, reusable widget, text, localization, responsive? |
+| Network and data | Where is JSON serialized/validated? HTTP errors, auth, cache? |
+| Navigation | A main router, deep links, back stack, guards? |
+| Tests | Current tests, manual scenarios, flaky tests, real coverage? |
+| Platform | Web, Windows/macOS/Linux, Android/iOS, relevant sizes |
+| Release | Deadline constraints, compatibility, flags, critical flows |
 
-La evidencia de código es `ruta:línea` y el comportamiento observado; **no** inventar resultados de ejecutar código no disponible.
+Code evidence is `path:line` plus observed behavior; **do not** invent results from running code that is not available.
 
-## 3. Contratos y presupuesto de cambio
+## 3. Contracts and change budget
 
-Explicita antes de actuar:
+Make explicit before acting:
 
-- Entradas/salidas, cargas, vacíos, errores, reintentos, pantallas y rutas afectadas.
-- Comportamiento público que **no** se puede cambiar.
-- Dependencias ajenas, observabilidad y límites de integración.
-- Máximo alcance: hotfix, pequeño refactor, feature, migración mayor.
-- Cómo revertir: un cambio aislado, toggle validado o restauración de un diff revisado.
+- Inputs/outputs, loading, empty states, errors, retries, affected screens and routes.
+- Public behavior that **cannot** change.
+- External dependencies, observability and integration boundaries.
+- Maximum scope: hotfix, small refactor, feature, major migration.
+- How to roll back: an isolated change, a validated toggle, or restoring a reviewed diff.
 
-Si la petición es pequeña, la inspección también debe ser pequeña. Un arreglo de un `TextField` no requiere leer todas las features ni generar un documento de arquitectura.
+If the request is small, the inspection must be small too. Fixing a `TextField` does not require reading every feature or producing an architecture document.
 
-## 4. Detección de contexto progresiva
+## 4. Progressive context discovery
 
-- Mirar primero los archivos exactos; después importadores y tests relevantes.
-- Leer el `.flutter-rails.yaml` si existe; **no generarlo ni modificarlo por iniciativa propia**.
-- Usar Graphify u otro índice solo si está instalado y mejora un problema de navegación real; no construir grafos por defecto.
-- Cargar solo el módulo de referencia relevante a la tarea (ver tabla en `SKILL.md`).
-- Separar hechos, hipótesis y preferencias: «usa Provider» es un hecho; «deberíamos migrar a Riverpod» es una hipótesis que requiere evaluación.
+- Look at the exact files first; then importers and relevant tests.
+- Read `.flutter-rails.yaml` if it exists; **do not generate or modify it on your own initiative**.
+- Use Graphify or another index only if it is installed and helps with a real navigation problem; do not build graphs by default.
+- Load only the reference module relevant to the task (see the table in `SKILL.md`).
+- Separate facts, hypotheses and preferences: "uses Provider" is a fact; "we should migrate to Riverpod" is a hypothesis that needs evaluation.

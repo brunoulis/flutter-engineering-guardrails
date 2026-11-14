@@ -1,46 +1,46 @@
-# Rendimiento: Flutter Web, desktop y UI reactiva
+# Performance: Flutter Web, desktop and reactive UI
 
-Objetivo: **optimizar donde exista un problema**, no convertir todos los widgets a micro-optimizaciones. Guía oficial: https://docs.flutter.dev/perf/best-practices.
+Goal: **optimize where a problem exists**, not turn every widget into a micro-optimization. Official guide: https://docs.flutter.dev/perf/best-practices.
 
-## Método obligatorio para afirmaciones de mejora
+## Mandatory method for improvement claims
 
-1. **Reproducir:** caso de uso, dispositivo/navegador y perfil de datos, versión/release mode apropiados.
-2. **Medir baseline:** Flutter DevTools Performance/Memory, tiempo por frame, timeline CPU, reconstrucciones, solicitudes, memory snapshots; seleccionar métrica que mida el problema.
-3. **Formular hipótesis:** por ejemplo, lista eager construye miles de elementos o `notifyListeners` provoca trabajo innecesario.
-4. **Cambiar lo mínimo:** una región de rebuild, un memo/caché con invalidación, una consulta, un list builder.
-5. **Comparar A/B:** misma máquina, datos, escenario y modo; reportar resultados reales o **no medido**.
-6. **Valorar coste:** latencia/CPU/RAM/complexidad y recursos liberados.
+1. **Reproduce:** use case, device/browser and data profile, appropriate version/release mode.
+2. **Measure a baseline:** Flutter DevTools Performance/Memory, frame time, CPU timeline, rebuilds, requests, memory snapshots; pick the metric that measures the problem.
+3. **Form a hypothesis:** for example, an eager list builds thousands of elements, or `notifyListeners` triggers unnecessary work.
+4. **Change the minimum:** one rebuild region, a memo/cache with invalidation, one query, one list builder.
+5. **Compare A/B:** same machine, data, scenario and mode; report real results or **not measured**.
+6. **Assess the cost:** latency/CPU/RAM/complexity and resources freed.
 
-## Reglas técnicas
+## Technical rules
 
-- `build()` puede ejecutarse frecuentemente; no bloquearlo con parsing grande, I/O ni cómputos costosos repetitivos.
-- Usar `ListView.builder`/`SliverList` u otros builders perezosos para muchas filas; no usar `Column(children: thousands)`.
-- Localizar el estado reactivo en el subárbol consumidor. `Consumer`/`Selector`/equivalentes ayudan cuando el profiling muestra rebuild excesivo, no por obligación.
-- Mantener objetos de `Future`/streams y controladores según lifecycle, evitando nuevas requests sin motivo en rebuilds.
-- `const` mejora expresividad y puede evitar trabajo, pero no reemplaza diseño ni profiling.
-- Tener cuidado con `Opacity`, clipping, `saveLayer`, intrinsic layout, sombras o filtros en animaciones; comprobar si son la causa real.
-- Seleccionar claves estables en listas de elementos que cambian de orden.
-- Evitar cachés sin límites ni invalidación, incluso cuando reducen CPU: pueden subir RAM y mostrar datos obsoletos.
-- Medir la situación real antes de usar isolates; el coste de serialización y arranque puede superar ahorro.
+- `build()` can run frequently; do not block it with large parsing, I/O or repeated expensive computations.
+- Use `ListView.builder`/`SliverList` or other lazy builders for many rows; do not use `Column(children: thousands)`.
+- Keep reactive state localized in the consuming subtree. `Consumer`/`Selector`/equivalents help when profiling shows excessive rebuilds, not as an obligation.
+- Keep `Future`/stream objects and controllers tied to the lifecycle, avoiding new requests on rebuilds without reason.
+- `const` improves expressiveness and can avoid work, but it does not replace design or profiling.
+- Be careful with `Opacity`, clipping, `saveLayer`, intrinsic layout, shadows or filters in animations; check whether they are the real cause.
+- Choose stable keys in lists whose items change order.
+- Avoid caches without bounds or invalidation, even when they reduce CPU: they can raise RAM and show stale data.
+- Measure the real situation before using isolates; serialization and startup cost can exceed the savings.
 
-## Flutter Web / paneles de gestión
+## Flutter Web / admin panels
 
-- Estado de URL, refresh/back/forward, filtros y deep links deben funcionar con el router real.
-- Probar layouts con zoom, navegación de teclado, tamaños de ventana y text scaling.
-- Medir el coste de render de tablas de gran tamaño, listas virtualizadas, descargas, imágenes y parseo JSON.
-- Evitar cálculos pesados en el hilo UI; no prometer menor RAM al mover operaciones a otra capa si siguen viviendo en el mismo proceso.
-- No usar un `MediaQuery.sizeOf(context).width` de toda la pantalla cuando lo que importa es el ancho de un panel limitado por el padre.
-- En desktop: probar resize, foco, soporte de ratón, atajos y distribución DPI.
+- URL state, refresh/back/forward, filters and deep links must work with the real router.
+- Test layouts with zoom, keyboard navigation, window sizes and text scaling.
+- Measure the render cost of large tables, virtualized lists, downloads, images and JSON parsing.
+- Avoid heavy computation on the UI thread; do not promise lower RAM by moving operations to another layer if they still live in the same process.
+- Do not use a full-screen `MediaQuery.sizeOf(context).width` when what matters is the width of a panel constrained by its parent.
+- On desktop: test resize, focus, mouse support, shortcuts and DPI scaling.
 
-## Evidencia que debe devolver el agente
+## Evidence the agent must return
 
 ```text
-Hipótesis: Widget X rehace 400 filas por cambio de filtro.
-Baseline: [medición real; si no, no medido].
-Cambio: builder perezoso + estado localizado.
-Después: [medición real].
-Riesgos: scroll, selección, accesibilidad, ordering.
-Tests: widget test 0/1/muchas filas + interacción.
+Hypothesis: Widget X rebuilds 400 rows per filter change.
+Baseline: [real measurement; otherwise, not measured].
+Change: lazy builder + localized state.
+After: [real measurement].
+Risks: scroll, selection, accessibility, ordering.
+Tests: widget test 0/1/many rows + interaction.
 ```
 
-Nunca afirmar «30% más rápido» por lectura estática ni por número de líneas reducido.
+Never claim "30% faster" from static reading or from a reduced line count.

@@ -1,59 +1,59 @@
-# Modo DEEP-REFACTOR — cambios estructurales, con migración reversible
+# DEEP-REFACTOR mode — structural changes, with reversible migration
 
-**Se activa por evidencia, no por tamaño.** El usuario puede solicitar solo el plan. No implementar de manera espontánea una migración grande.
+**Activated by evidence, not by size.** The user may request only the plan. Do not spontaneously implement a large migration.
 
-## Umbrales cualitativos de activación
+## Qualitative activation thresholds
 
-Alguno de estos argumentos, apoyado en código/tests/incidentes, debe ser fuerte:
+At least one of these arguments, backed by code/tests/incidents, must be strong:
 
-- Un acoplamiento entre features impide pruebas, despliegues o cambios repetidamente.
-- Estado/navegación con fuentes de verdad incompatibles y errores reproducibles.
-- Lógica de negocio duplicada que causa divergencia funcional y alto coste de mantenimiento.
-- Problema persistente de performance/memoria medido, con causa identificada.
-- SDK o dependencia sin mantenimiento que exige migración por compatibilidad o seguridad.
-- Un componente es prácticamente imposible de modificar con seguridad a pesar de refactors locales.
+- Coupling between features repeatedly blocks testing, deployments or changes.
+- State/navigation with incompatible sources of truth and reproducible errors.
+- Duplicated business logic causing functional divergence and high maintenance cost.
+- Persistent, measured performance/memory problem with an identified cause.
+- Unmaintained SDK or dependency that requires migration for compatibility or security.
+- A component is practically impossible to modify safely despite local refactors.
 
-**No basta:** «el archivo tiene 700 líneas», «Clean Architecture es mejor», «queremos usar Riverpod», «todo debería ser Stateless». 
+**Not enough:** "the file has 700 lines", "Clean Architecture is better", "we want to use Riverpod", "everything should be Stateless". 
 
-## Comparar opciones obligatoriamente
+## Comparing options is mandatory
 
-| Opción | Beneficio | Coste oculto / riesgo | Cuándo elegir |
+| Option | Benefit | Hidden cost / risk | When to choose |
 |---|---|---|---|
-| A. Mantener + hotfix/test | Cambio mínimo y entrega rápida | Puede conservar deuda | Fallo urgente, poca evidencia de rediseño |
-| B. Refactor por feature en sitio | Migra gradualmente y permite rollback | Convivencia temporal de patrones | Proyecto vivo, muchas integraciones |
-| C. Nuevo módulo/package delimitado | Fronteras claras, tests unitarios | API/versionado/build extra | Alta cohesión y consumidores independientes |
-| D. Reescribir una pantalla/feature | Limpia núcleo aislado | Riesgo de casos desconocidos | Componente acotado con tests/contratos |
-| E. Reescritura completa | Arquitectura coherente a largo plazo | Máxima regresión, costes y plazo | Solo con alcance, tests y beneficios superiores demostrados |
+| A. Keep + hotfix/test | Minimal change and fast delivery | May preserve debt | Urgent failure, little evidence for a redesign |
+| B. In-place per-feature refactor | Migrates gradually and allows rollback | Temporary coexistence of patterns | Live project, many integrations |
+| C. New bounded module/package | Clear boundaries, unit tests | Extra API/versioning/build | High cohesion and independent consumers |
+| D. Rewrite one screen/feature | Cleans an isolated core | Risk of unknown cases | Bounded component with tests/contracts |
+| E. Full rewrite | Coherent long-term architecture | Maximum regression, cost and timeline | Only with demonstrated scope, tests and superior benefits |
 
-Nunca proponer «E» sin inventario funcional/contractual, tamaño real, integraciones, coste de mantener dos apps y aceptación explícita del responsable.
+Never propose "E" without a functional/contractual inventory, real size, integrations, the cost of maintaining two apps and explicit acceptance from the owner.
 
-## Migración por strangler / slices
+## Strangler / slice migration
 
-1. Cartografiar dominios, rutas, funcionalidades y dependencias.
-2. Seleccionar feature piloto no crítica pero representativa.
-3. Congelar contratos (schema, estado, deep link, analytics, errores, UX, auth).
-4. Crear pruebas de caracterización y test contractuales; identificar incompatibilidades.
-5. Añadir frontera/adaptador **solo** si permite coexistencia realmente necesaria.
-6. Migrar feature piloto y demostrar paridad; supervisar crashes, timings, UI y support.
-7. Expandir feature por feature con retirada **programada** de código legado.
-8. Eliminar wrappers temporales y flags cuando verificados; documentar rollback.
+1. Map domains, routes, features and dependencies.
+2. Select a non-critical but representative pilot feature.
+3. Freeze contracts (schema, state, deep link, analytics, errors, UX, auth).
+4. Create characterization tests and contract tests; identify incompatibilities.
+5. Add a boundary/adapter **only** if it enables coexistence that is truly necessary.
+6. Migrate the pilot feature and demonstrate parity; monitor crashes, timings, UI and support.
+7. Expand feature by feature with **scheduled** removal of legacy code.
+8. Remove temporary wrappers and flags once verified; document rollback.
 
-## Entregables de diseño
+## Design deliverables
 
-- ADR ligero: problema, alternativas, decisión y condición de revocación.
-- Diagrama simple de dependencias actuales/objetivo (no diagrama decorativo gigante).
-- Tabla «contrato → test de equivalencia → responsable».
-- Plan por milestones: scope, criterios de aceptación, riesgos, reversión.
-- Métricas **reales** (jank, memory, incidencias, duración builds, tests), si existen. Si no existen, diseñar medición antes de optimizar.
-- Política de no mezclar cambios: nuevos patrones no se expanden a todas las features sin justificación.
+- Lightweight ADR: problem, alternatives, decision and revocation condition.
+- Simple diagram of current/target dependencies (not a giant decorative diagram).
+- Table "contract → equivalence test → owner".
+- Milestone plan: scope, acceptance criteria, risks, rollback.
+- **Real** metrics (jank, memory, incidents, build duration, tests), if they exist. If they do not, design the measurement before optimizing.
+- No-mixing policy: new patterns do not spread to every feature without justification.
 
-## Paquetes y carpetas: adaptación, no obligación
+## Packages and folders: adaptation, not obligation
 
-La analogía con `Adaptive Crate Architecture` de Rust es una **arquitectura adaptativa de features/packages**. Extraer a package requiere beneficio neto de aislamiento, contrato, consumo compartido o ownership. Si una simple carpeta resuelve bien el problema, conservar carpeta.
+The analogy with Rust's `Adaptive Crate Architecture` is an **adaptive feature/package architecture**. Extracting to a package requires a net benefit in isolation, contract, shared consumption or ownership. If a simple folder solves the problem well, keep the folder.
 
-## Criterios de salida / rollback
+## Exit / rollback criteria
 
-- Una feature migrada pasa contract tests de éxito/error/estado/vuelta/responsive según corresponda.
-- No hay incremento inexplicado de crashes/regresiones.
-- La solución sigue siendo testeable, documentada y reversible.
-- Si falla una puerta de calidad, detener expansión y corregir/volver, no continuar por inercia.
+- A migrated feature passes success/error/state/back/responsive contract tests as applicable.
+- No unexplained increase in crashes/regressions.
+- The solution remains testable, documented and reversible.
+- If a quality gate fails, stop the expansion and fix/revert; do not continue out of inertia.

@@ -1,37 +1,37 @@
-# Origen de las reglas y límites de interpretación
+# Origin of the rules and limits of interpretation
 
-## Los tres debates de FlutterDev
+## The three FlutterDev discussions
 
 1. **AI is reducing my productivity** — https://www.reddit.com/r/FlutterDev/comments/1s9csar/ai_is_reducing_my_productivity/
-   - Opiniones enfrentadas sobre delegar programación frente a mantener criterio técnico.
-   - Señales: código generado que parece correcto pero tiene atajos, casos límite sin cubrir, abstracciones pobres y revisión costosa.
-   - Extracción: diseñar antes de implementar, exigir revisión humana de contratos, riesgos y pruebas; no hacer que un agente reemplace la comprensión del desarrollador.
-   - **No implica** que toda IA empeore la productividad; los comentarios son experiencias personales, no benchmarks controlados.
+   - Conflicting opinions on delegating programming versus keeping technical judgment.
+   - Signals: generated code that looks correct but takes shortcuts, uncovered edge cases, poor abstractions and costly review.
+   - Takeaway: design before implementing, require human review of contracts, risks and tests; do not let an agent replace the developer's understanding.
+   - **It does not imply** that all AI worsens productivity; the comments are personal experiences, not controlled benchmarks.
 2. **Flutter skills to make your AI agents smarter** — https://www.reddit.com/r/FlutterDev/comments/1raz7ry/flutter_skills_to_make_your_ai_agents_smarter/
-   - Enlace principal compartido: https://playbooks.com/for/flutter. Su utilidad se plantea como contexto especializado para agentes; no debe tratarse como autoridad superior al SDK/documentación.
-   - Extracción: skills modulares cargadas bajo demanda; fuentes de contexto verificables, no alucinación de APIs; uso de herramientas oficiales.
+   - Main shared link: https://playbooks.com/for/flutter. Its value is framed as specialized context for agents; it must not be treated as an authority above the SDK/documentation.
+   - Takeaway: modular skills loaded on demand; verifiable context sources, not hallucinated APIs; use of official tools.
 3. **Refactoring Extremely Bad Flutter Code** — https://www.reddit.com/r/FlutterDev/comments/18gz1o9/refactoring_extremely_bad_flutter_code/
-   - Problemas descritos: estado mal gestionado, GetX/Navigator mezclados, controladores sin dispose, errores no tratados, `Map` sin tipar, lógica en widgets, pocos tests.
-   - Consejos repetidos: no reescribir sin comparar costes; delimitar fallos, formatter/lints, pequeños cambios/commits, pruebas de regresión, refactorizar por feature, documentar decisiones y negociar alcance.
-   - Hay opiniones contrarias sobre reescribir; no tomar el voto de un comentario como prueba universal. Nuestra regla es **decisión condicionada**, no prohibición absoluta.
+   - Problems described: poorly managed state, mixed GetX/Navigator, controllers without dispose, unhandled errors, untyped `Map`, logic in widgets, few tests.
+   - Repeated advice: do not rewrite without comparing costs; scope failures, formatter/lints, small changes/commits, regression tests, refactor by feature, document decisions and negotiate scope.
+   - There are opposing opinions on rewriting; do not take one comment's vote as universal proof. Our rule is a **conditional decision**, not an absolute ban.
 
-## Material técnico prioritario
+## Priority technical material
 
-- Estándar Agent Skills (frontmatter y estructura): https://agentskills.io/specification
-- Flutter Agent Plugins oficiales: https://github.com/flutter/agent-plugins
-- Dart Skills oficiales: https://github.com/dart-lang/skills
-- Flutter + Dart MCP y skills: https://docs.flutter.dev/ai/get-started y https://docs.flutter.dev/ai/tools
-- Arquitectura recomendada adaptable: https://docs.flutter.dev/app-architecture/guide
-- Tests de unidad/widget/integración: https://docs.flutter.dev/testing/overview
+- Agent Skills standard (frontmatter and structure): https://agentskills.io/specification
+- Official Flutter Agent Plugins: https://github.com/flutter/agent-plugins
+- Official Dart Skills: https://github.com/dart-lang/skills
+- Flutter + Dart MCP and skills: https://docs.flutter.dev/ai/get-started and https://docs.flutter.dev/ai/tools
+- Recommended, adaptable architecture: https://docs.flutter.dev/app-architecture/guide
+- Unit/widget/integration tests: https://docs.flutter.dev/testing/overview
 - Performance: https://docs.flutter.dev/perf/best-practices
-- Manejo de errores: https://docs.flutter.dev/testing/errors y https://docs.flutter.dev/app-architecture/design-patterns/result
-- `dart fix --dry-run` y aplicación explícita: https://dart.dev/tools/dart-fix
+- Error handling: https://docs.flutter.dev/testing/errors and https://docs.flutter.dev/app-architecture/design-patterns/result
+- `dart fix --dry-run` and explicit application: https://dart.dev/tools/dart-fix
 - `dart analyze`: https://dart.dev/tools/dart-analyze
-- Accesibilidad: https://docs.flutter.dev/ui/accessibility
+- Accessibility: https://docs.flutter.dev/ui/accessibility
 
-## Principios de atribución
+## Attribution principles
 
-- Las reglas son una **síntesis original**; no copiar hilos ni colecciones de terceros palabra por palabra.
-- Priorizar reglas actuales del SDK/paquete existente frente a recomendaciones históricas (el hilo de refactor data de años anteriores).
-- Nada de afirmaciones falsas de benchmark, bugs «confirmados» por un regex, código sin verificar o «sin bugs garantizado».
-- Tener `flutter analyze` verde no demuestra ausencia de defectos de interfaz, datos, concurrencia o UX.
+- The rules are an **original synthesis**; do not copy third-party threads or collections word for word.
+- Prioritize current rules of the SDK/existing package over historical recommendations (the refactor thread dates from earlier years).
+- No false benchmark claims, bugs "confirmed" by a regex, unverified code or "guaranteed bug-free".
+- A green `flutter analyze` does not prove the absence of interface, data, concurrency or UX defects.

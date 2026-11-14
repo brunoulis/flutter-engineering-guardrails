@@ -1,15 +1,15 @@
-# Ejemplo para copiar a <tu-proyecto>/.flutter-rails.yaml
-# Contrato declarativo leído por el agente; ningún script lo procesa automáticamente.
-# Valores ilustrativos: reemplazar por los del repositorio real.
+# Example to copy to <your-project>/.flutter-rails.yaml
+# Declarative contract read by the agent; no script processes it automatically.
+# Illustrative values: replace them with those of the real repository.
 version: 1
 project:
   name: "my_flutter_project"
   platforms: [web, windows]
-  min_sdk_source: "pubspec.yaml" # No inventar versiones; leer el archivo.
+  min_sdk_source: "pubspec.yaml" # Do not invent versions; read the file.
   code_owner: "existing_team"
 architecture:
   preferred_state: "provider_change_notifier_viewmodel"
-  routing: "detect_existing"  # p.ej. go_router / Navigator / GetX
+  routing: "detect_existing"  # e.g. go_router / Navigator / GetX
   layout: "existing_feature_structure"
   dependency_injection: "existing_provider_constructors"
   allow_new_architecture_only_with_evidence: true
@@ -17,7 +17,7 @@ architecture:
   domain_use_cases: "optional_not_default"
   separate_packages: "analyze_before_separating"
 ui:
-  responsive_breakpoint_px: 980 # EJEMPLO de un breakpoint ya existente, NO valor general.
+  responsive_breakpoint_px: 980 # EXAMPLE of an already-existing breakpoint, NOT a general value.
   breakpoint_policy: "preserve_existing_until_ui_spec_changes"
   tokens: "follow_existing_theme"
   accessibility: true

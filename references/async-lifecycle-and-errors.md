@@ -1,32 +1,32 @@
-# Async, ownership, lifecycle y gestión de fallos
+# Async, ownership, lifecycle and failure handling
 
-## Inventario de recursos (obligatorio cuando se toca una pantalla con estado)
+## Resource inventory (mandatory when touching a stateful screen)
 
-| Recurso | Propietario típico | Liberación / condición |
+| Resource | Typical owner | Release / condition |
 |---|---|---|
-| `TextEditingController`, `FocusNode` | Estado del formulario, salvo inyección | `dispose()` si la instancia es propia |
-| `AnimationController`, `TabController` | `State` o objeto propietario | `dispose()`; revisar `TickerProvider` |
-| `ScrollController`, `PageController` | Vista que los crea | `dispose()` y callbacks al cambiar widget |
-| `StreamSubscription` | Servicio/notifier/State que se suscribe | `cancel()` y plan para errores de stream |
-| `Timer` (incl. periodic) | Componente que lo crea | `cancel()` antes de liberar dependencias |
-| Listeners en `ChangeNotifier` | Objeto que hace `addListener` | `removeListener()` cuando deja de observar |
-| Future HTTP | Caso de uso/estado dueño de la petición | Cancelación si cliente lo permite; impedir efectos tardíos si no |
-| `ChangeNotifier` / Provider | Constructor o scope de Provider | `dispose()` por el **creador**, no por cada consumidor |
-| Isolate/event channel/IPC | Servicio que inicia el canal | shutdown ordenado y manejo de desconexión |
+| `TextEditingController`, `FocusNode` | Form state, unless injected | `dispose()` if the instance is owned |
+| `AnimationController`, `TabController` | `State` or owning object | `dispose()`; check `TickerProvider` |
+| `ScrollController`, `PageController` | View that creates them | `dispose()` and callbacks when the widget changes |
+| `StreamSubscription` | Service/notifier/State that subscribes | `cancel()` and a plan for stream errors |
+| `Timer` (incl. periodic) | Component that creates it | `cancel()` before releasing dependencies |
+| Listeners on `ChangeNotifier` | Object that calls `addListener` | `removeListener()` when it stops observing |
+| HTTP Future | Use case/state that owns the request | Cancellation if the client allows it; otherwise prevent late effects |
+| `ChangeNotifier` / Provider | Constructor or Provider scope | `dispose()` by the **creator**, not by each consumer |
+| Isolate/event channel/IPC | Service that starts the channel | Orderly shutdown and disconnection handling |
 
-Importante: **no** hacer `dispose()` de un controlador recibido desde fuera si pertenece a otro objeto. Si cambia una dependencia que escucha el widget, revisar `didUpdateWidget` y limpiar/reasignar listeners.
+Important: do **not** `dispose()` a controller received from outside if it belongs to another object. If a dependency the widget listens to changes, check `didUpdateWidget` and clean up/reassign listeners.
 
-## Async: cinco fallos comunes
+## Async: five common failures
 
-1. **`setState` o uso de `BuildContext` tras `await`** sin comprobar si el widget sigue montado.
-2. **Respuestas fuera de orden**: la solicitud A empieza, luego B; B termina primero, pero A pisa su estado.
-3. **Doble envío** de formularios o navegación duplicada durante carga.
-4. **`FutureBuilder(future: fetch())`** creado durante rebuild, provocando peticiones repetidas.
-5. **Excepciones descartadas** con `catch (_) {}`, `print` y continuación en estado inválido.
+1. **`setState` or use of `BuildContext` after `await`** without checking whether the widget is still mounted.
+2. **Out-of-order responses**: request A starts, then B; B finishes first, but A overwrites its state.
+3. **Double submission** of forms or duplicate navigation during loading.
+4. **`FutureBuilder(future: fetch())`** created during rebuild, causing repeated requests.
+5. **Discarded exceptions** with `catch (_) {}`, `print` and continuing in an invalid state.
 
-`context.mounted` protege un contexto tras el `await`, pero **no evita respuestas obsoletas** ni cancela una petición; son problemas diferentes.
+`context.mounted` protects a context after the `await`, but it **does not prevent stale responses** nor cancel a request; these are different problems.
 
-## Ejemplo ilustrativo: ViewModel con resultados obsoletos
+## Illustrative example: ViewModel with stale results
 
 ```dart
 class SearchViewModel extends ChangeNotifier {
@@ -54,7 +54,7 @@ class SearchViewModel extends ChangeNotifier {
       _items = List<SearchItem>.unmodifiable(result);
     } catch (error) {
       if (!_isCurrent(generation)) return;
-      _lastError = error; // Adaptar: mapear a un error seguro para la UI.
+      _lastError = error; // Adapt: map to a UI-safe error.
     } finally {
       if (_isCurrent(generation)) {
         _isLoading = false;
@@ -74,24 +74,24 @@ class SearchViewModel extends ChangeNotifier {
 }
 ```
 
-Es **un patrón posible**, no una obligación. En este ejemplo se conservan resultados previos durante carga/error; decidirlo explícitamente según UX. La propia librería de estado/petición puede gestionar cancelación y ordering. Tipos `SearchRepository` y `SearchItem` son interfaces del ejemplo, no librerías reales.
+This is **one possible pattern**, not an obligation. In this example previous results are kept during loading/error; decide this explicitly according to UX. The state/request library itself may handle cancellation and ordering. The `SearchRepository` and `SearchItem` types are example interfaces, not real libraries.
 
-## Manejo de errores con sentido
+## Meaningful error handling
 
-- Distinguir fallos **esperables** (sin conexión, 401, timeout, 404 de recurso) de fallos **inesperados** (contrato JSON inválido, bug, estado imposible).
-- Un error recuperable debe convertirse en estado UX útil con reintento seguro si corresponde. **No** devolver datos silenciosamente incorrectos como si hubiera éxito.
-- Logs con contexto técnico suficiente para diagnóstico, sin tokens, datos de personas o cuerpos completos confidenciales.
-- No repetir/reintentar operaciones no idempotentes de forma automática sin protección frente a duplicados.
-- El patrón `Result<T>` es opcional, recomendable cuando consumidores deben actuar según clases de fallo; no introducirlo de forma global por una única `try/catch`.
-- Registrar errores no tratados mediante mecanismos apropiados de Flutter (`FlutterError.onError`, `PlatformDispatcher.instance.onError`) **solo** si el proyecto lo necesita y sin duplicar reportes.
+- Distinguish **expected** failures (no connection, 401, timeout, resource 404) from **unexpected** failures (invalid JSON contract, bug, impossible state).
+- A recoverable error should become a useful UX state with a safe retry where appropriate. Do **not** silently return incorrect data as if it were a success.
+- Logs with enough technical context for diagnosis, without tokens, personal data or full confidential bodies.
+- Do not automatically repeat/retry non-idempotent operations without protection against duplicates.
+- The `Result<T>` pattern is optional, advisable when consumers must act according to failure classes; do not introduce it globally because of a single `try/catch`.
+- Register unhandled errors through appropriate Flutter mechanisms (`FlutterError.onError`, `PlatformDispatcher.instance.onError`) **only** if the project needs it and without duplicating reports.
 
-## Tests de carrera y ciclo de vida
+## Race and lifecycle tests
 
-1. Solicitud A, luego B, completar B y A: el resultado visible debe ser de B.
-2. Iniciar una operación y retirar pantalla/notifier: sin actualizaciones a objetos ya liberados.
-3. Respuesta con error: estado, mensaje y acción de recuperación definidos.
-4. Doble tap en enviar: no duplicar acciones si negocio no lo permite.
-5. Editar parámetros de un widget con listener: viejo recurso desuscrito y nuevo escuchado.
-6. Salir y volver a pantalla: no mantener suscripciones fantasma ni solicitudes repetidas.
+1. Request A, then B, complete B and then A: the visible result must be B's.
+2. Start an operation and remove the screen/notifier: no updates to already released objects.
+3. Error response: defined state, message and recovery action.
+4. Double tap on submit: do not duplicate actions if the business rules do not allow it.
+5. Edit the parameters of a widget with a listener: old resource unsubscribed and new one listened to.
+6. Leave and return to the screen: no ghost subscriptions or repeated requests.
 
-Leer: https://docs.flutter.dev/testing/errors y https://docs.flutter.dev/app-architecture/design-patterns/result.
+Read: https://docs.flutter.dev/testing/errors and https://docs.flutter.dev/app-architecture/design-patterns/result.

@@ -1,33 +1,33 @@
-# Calidad Dart: precisión, tipos y complejidad acotada
+# Dart quality: precision, types and bounded complexity
 
-## Reglas fuertes
+## Strong rules
 
-- Usar tipos públicos claros, `final` cuando no hay reasignación, invariantes y null-safety; reducir `dynamic` en fronteras con API externa.
-- No «solucionar» null-safety con cascadas de `!`, `as` o `late` cuando no se ha probado el invariante. Validar explícitamente antes de acceder.
-- No usar `catch (_){}` para esconder errores; distinguir error de red, timeout, parse, permiso, validación, cancelación y error de programación.
-- No generar `toString()` para comparar estados de negocio, ni JSON como `Map` disperso por widgets.
-- Poner la conversión JSON ↔ modelo en un límite probado. Introducir modelos **según valor**, no un modelo por cada campo.
-- Evitar parámetros booleanos ambiguos, flags que cambian significado y funciones con responsabilidades mezcladas; preferir nombres, tipos/opciones o métodos separados si aclaran.
-- Documentar **por qué**, precondiciones y decisiones sorprendentes; no repetir lo que el código expresa.
-- Respetar estilo y lint existentes; no añadir un linter premium ni reglas incompatibles sin aprobación.
+- Use clear public types, `final` when there is no reassignment, invariants and null-safety; reduce `dynamic` at boundaries with external APIs.
+- Do not "fix" null-safety with cascades of `!`, `as` or `late` when the invariant has not been proven. Validate explicitly before accessing.
+- Do not use `catch (_){}` to hide errors; distinguish network error, timeout, parse, permission, validation, cancellation and programming error.
+- Do not generate `toString()` to compare business states, nor JSON as a `Map` scattered across widgets.
+- Put JSON ↔ model conversion at a tested boundary. Introduce models **according to value**, not one model per field.
+- Avoid ambiguous boolean parameters, flags that change meaning and functions with mixed responsibilities; prefer names, types/options or separate methods if they clarify.
+- Document **why**, preconditions and surprising decisions; do not repeat what the code already expresses.
+- Respect existing style and lints; do not add a premium linter or incompatible rules without approval.
 
-## Buen uso de características Dart
+## Good use of Dart features
 
-- `sealed class`, records, pattern matching y otras capacidades modernas **solo si el SDK mínimo del proyecto las soporta** y simplifican el diseño.
-- Para estados mutuamente excluyentes, decidir entre `enum` + datos, variantes tipadas, patrón `Result` o estructura existente. Evitar estados imposibles como `isLoading == true && hasError == true` si importan semánticamente.
-- Para un resultado sencillo, no crear cinco clases genéricas si `Future<T?>` con un contrato explícito resuelve bien el caso. Para errores que el consumidor debe mostrar/recuperar, valorar un resultado tipado.
-- Preferir funciones puras para transformaciones deterministas, buenas para unit tests.
-- En bucles intensivos, evitar asignaciones/copias innecesarias **después de medir**, no cambiar código legible por micro-optimizaciones teóricas.
+- `sealed class`, records, pattern matching and other modern capabilities **only if the project's minimum SDK supports them** and they simplify the design.
+- For mutually exclusive states, choose between `enum` + data, typed variants, the `Result` pattern or the existing structure. Avoid impossible states such as `isLoading == true && hasError == true` if they matter semantically.
+- For a simple result, do not create five generic classes if `Future<T?>` with an explicit contract handles the case well. For errors the consumer must display/recover from, consider a typed result.
+- Prefer pure functions for deterministic transformations; they are good for unit tests.
+- In hot loops, avoid unnecessary allocations/copies **after measuring**; do not trade readable code for theoretical micro-optimizations.
 
-## Ejemplo de frontera tipada
+## Typed boundary example
 
-Antes (la UI depende de claves de servidor sin validar):
+Before (the UI depends on unvalidated server keys):
 
 ```dart
 Text(response['client']['name'] ?? '')
 ```
 
-Después (ilustrativo; adaptar al contrato real):
+After (illustrative; adapt to the real contract):
 
 ```dart
 class Client {
@@ -44,25 +44,25 @@ class Client {
 }
 ```
 
-El parse debe ejecutarse al obtener datos, manejando el error en la capa propietaria, no en cada `build()`.
+Parsing should run when the data is fetched, with the error handled in the owning layer, not in every `build()`.
 
-## Anti-patrones generados por IA
+## AI-generated anti-patterns
 
-| Patrón | Por qué suele empeorar | Mejor enfoque |
+| Pattern | Why it usually makes things worse | Better approach |
 |---|---|---|
-| `BaseRepository<T>` genérico para un único CRUD | API falsa, complejidad sin beneficio | Servicio/repo concreto hasta tener reutilización |
-| Cinco niveles de widgets para un `Text` | Dificulta lectura y pruebas | Componente útil con contrato claro |
-| Extensión/helper por cada línea repetida | Fragmenta el código | Aceptar repetición trivial o abstraer comportamiento real |
-| `try { ... } catch (_) { return null; }` | Borra causas e impide diagnosticar | Propagar error tipado, registrar de forma segura o mostrar feedback |
-| `as dynamic` / `!` por conveniencia | Oculta contratos inválidos | Validación de borde y tipos precisos |
-| Tests que comprueban implementación interna | Se rompen con refactors inocuos | Contratos observables y efectos |
-| «Optimizar» cambiando toda la arquitectura | No hay relación causal ni medición | Instrumentar, reproducir, cambiar mínimo y comparar |
+| Generic `BaseRepository<T>` for a single CRUD | Fake API, complexity without benefit | Concrete service/repo until there is reuse |
+| Five levels of widgets for a `Text` | Hinders reading and testing | Useful component with a clear contract |
+| Extension/helper for every repeated line | Fragments the code | Accept trivial repetition or abstract real behavior |
+| `try { ... } catch (_) { return null; }` | Erases causes and prevents diagnosis | Propagate a typed error, log safely or show feedback |
+| `as dynamic` / `!` for convenience | Hides invalid contracts | Boundary validation and precise types |
+| Tests that check internal implementation | Break with harmless refactors | Observable contracts and effects |
+| "Optimizing" by changing the whole architecture | No causal relationship or measurement | Instrument, reproduce, change minimally and compare |
 
-## Barrera de calidad (antes de dar por terminado)
+## Quality gate (before calling it done)
 
-1. ¿Se entiende el flujo sin navegar 8 archivos para una acción trivial?
-2. ¿El nombre, tipo y acceso reflejan la responsabilidad real?
-3. ¿Puede probarse el comportamiento crítico sin arrancar toda la app?
-4. ¿Hay rutas de fallo y recuperación explícitas?
-5. ¿Las nuevas abstracciones reducen complejidad neta?
-6. ¿El código es compatible con la versión Dart del proyecto?
+1. Can the flow be understood without navigating 8 files for a trivial action?
+2. Do the name, type and access reflect the real responsibility?
+3. Can the critical behavior be tested without starting the whole app?
+4. Are there explicit failure and recovery paths?
+5. Do the new abstractions reduce net complexity?
+6. Is the code compatible with the project's Dart version?

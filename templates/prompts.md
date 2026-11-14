@@ -1,21 +1,21 @@
-# Prompts listos para Claude Code, Codex o Hermes Agent
+# Ready-to-use prompts for Claude Code, Codex or Hermes Agent
 
-## 1 — Audit de un proyecto Flutter legado
+## 1 — Audit of a legacy Flutter project
 
-Usa la skill `flutter-engineering-guardrails` en modo `audit`. Inspecciona el repositorio real y detecta su arquitectura, versión Flutter/Dart, state management, router, tests y convenciones. NO modifiques archivos ni hagas auto-fixes. Audita lifecycle/async, ownership de controllers, lógica de negocio dentro de UI, rutas, JSON no tipado, errores silenciosos, duplicación y performance en puntos críticos. Separa hallazgos **confirmados/probables/heurísticos**, siempre con archivo:línea, caso de fallo, solución mínima y prueba. Prioriza P0–P3. Entrega tres slices incrementales de máximo valor y qué NO tocar todavía. Evita proponer un framework nuevo sin evidencia.
+Use the `flutter-engineering-guardrails` skill in `audit` mode. Inspect the real repository and detect its architecture, Flutter/Dart version, state management, router, tests and conventions. Do NOT modify files or apply auto-fixes. Audit lifecycle/async, controller ownership, business logic inside the UI, routes, untyped JSON, silent errors, duplication and performance at critical points. Separate **confirmed/probable/heuristic** findings, always with file:line, failure case, minimal fix and test. Prioritize P0–P3. Deliver three incremental slices of maximum value and what NOT to touch yet. Avoid proposing a new framework without evidence.
 
-## 2 — Implementar una feature Flutter con calidad
+## 2 — Implement a Flutter feature with quality
 
-Usa `flutter-engineering-guardrails` en modo `implement`. Primero identifica la estructura y los patrones existentes, incluyendo `.flutter-rails.yaml` si está presente. Define contrato y estados UI, propietario de los datos, caminos de error/loading/empty, navegación, plataformas y responsive. Implementa el menor cambio bien estructurado. Respeta Provider/ViewModel (o el framework real), no añadas capas genéricas sin necesidad, protege `await` y dispose, y crea unit/widget tests apropiados. Ejecuta formatter, analyzer y tests disponibles, reportando resultados reales y límites.
+Use `flutter-engineering-guardrails` in `implement` mode. First identify the existing structure and patterns, including `.flutter-rails.yaml` if present. Define the contract and UI states, the data owner, error/loading/empty paths, navigation, platforms and responsive behavior. Implement the smallest well-structured change. Respect Provider/ViewModel (or the actual framework), do not add generic layers without need, guard `await` and dispose, and create appropriate unit/widget tests. Run the available formatter, analyzer and tests, reporting actual results and limits.
 
-## 3 — Refactor de una pantalla que funciona pero es difícil de mantener
+## 3 — Refactor of a screen that works but is hard to maintain
 
-Usa `flutter-engineering-guardrails` en modo `refactor`. No cambies comportamiento, contratos ni el diseño visual. Localiza responsabilidades mezcladas, dependencias y ownership. Crea un test de caracterización antes de editar, salvo que exista una prueba suficiente. Compara no hacer nada, extracción pequeña y nueva capa, elige el cambio mínimo eficaz. Mueve lógica fuera de `build()` cuando tenga valor, corrige async/lifecycle y estados inconsistentes, pero evita reescribir rutas/estado de todo el proyecto. Un objetivo estructural por slice, con tests después, comparación antes/después y rollback.
+Use `flutter-engineering-guardrails` in `refactor` mode. Do not change behavior, contracts or the visual design. Locate mixed responsibilities, dependencies and ownership. Write a characterization test before editing, unless a sufficient test already exists. Compare doing nothing, a small extraction and a new layer; choose the minimal effective change. Move logic out of `build()` when it adds value, fix async/lifecycle and inconsistent states, but avoid rewriting routing/state across the whole project. One structural goal per slice, with tests afterwards, a before/after comparison and rollback.
 
-## 4 — Deep-refactor justificado, sin reescritura automática
+## 4 — Justified deep-refactor, without automatic rewrite
 
-Usa `flutter-engineering-guardrails` en modo `deep-refactor` y **por ahora solo planifica**. Audita la feature o app para identificar causas comprobables de deuda técnica. Compara hotfix, refactor incremental, feature/package y reescritura parcial/completa. Calcula riesgos cualitativos, contratos que se deben preservar, tests de equivalencia y plan de migración por slices con adaptadores temporales y rollback. No impongas Riverpod/BLoC/Clean Architecture, no muevas todo a packages y no prometas mejoras de CPU/RAM sin mediciones.
+Use `flutter-engineering-guardrails` in `deep-refactor` mode and **only plan for now**. Audit the feature or app to identify verifiable causes of technical debt. Compare hotfix, incremental refactor, feature/package, and partial/full rewrite. Assess qualitative risks, contracts that must be preserved, equivalence tests, and a slice-by-slice migration plan with temporary adapters and rollback. Do not impose Riverpod/BLoC/Clean Architecture, do not move everything into packages, and do not promise CPU/RAM improvements without measurements.
 
-## 5 — Revisión adversarial del código generado por IA
+## 5 — Adversarial review of AI-generated code
 
-Usa `flutter-engineering-guardrails` como revisor que NO cambia código. Busca problemas de comportamiento aunque `flutter analyze` pase: entradas raras, JSON inválido, conexión fallida, carreras A→B, doble tap, context tras await, controllers/suscripciones sin cleanup, callbacks que esconden errores, UI acoplada, overengineering y pruebas que solo validan happy path. Reporta únicamente hallazgos relevantes con ruta:línea y prueba propuesta; indica qué aspectos están bien fundamentados. Evita feedback cosmético y números inventados.
+Use `flutter-engineering-guardrails` as a reviewer that does NOT change code. Look for behavioral problems even if `flutter analyze` passes: unusual inputs, invalid JSON, failed connection, A→B races, double tap, context after await, controllers/subscriptions without cleanup, callbacks that hide errors, coupled UI, overengineering and tests that only validate the happy path. Report only relevant findings with path:line and a proposed test; state which aspects are well founded. Avoid cosmetic feedback and invented numbers.

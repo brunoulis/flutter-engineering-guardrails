@@ -1,37 +1,37 @@
 # Flutter Engineering Guardrails
 
-Skill portable para **generar, auditar y refactorizar código Flutter/Dart** con criterios de ingeniería y sin imponer arquitecturas ajenas al proyecto. Inspirada en el enfoque de `rust-engineering-guardrails`, el debate técnico de tres hilos de r/FlutterDev y las guías oficiales de Flutter/Dart.
+A portable agent skill for **writing, auditing and refactoring Flutter/Dart code** with engineering discipline, without imposing an architecture the project does not use. Inspired by the approach of `rust-engineering-guardrails`, three technical discussion threads on r/FlutterDev, and the official Flutter/Dart guides.
 
-## Contenido
+## Contents
 
-- `SKILL.md`: política principal, modos y enrutamiento de referencias para ahorrar tokens.
-- `references/`: 15 guías especializadas (análisis previo, arquitectura adaptable, widgets/estado, errores y recursos, refactors, migraciones, rendimiento, pruebas, seguridad/a11y, puntuación y fuentes).
-- `templates/`: perfil de convenciones del proyecto, informe de auditoría, plan de refactor, checklist de review y prompts.
-- `rust/src/bin/audit.rs`: escáner heurístico de solo lectura escrito en Rust, compilable sin crates externos.
-- `rust/src/bin/check.rs`: ejecutor de formato/análisis/pruebas (Rust, sin crates externos).
-- `rust/`: crate con pruebas unitarias de Rust (`cargo test`).
+- `SKILL.md`: main policy, modes and reference routing (loads only what the task needs, to save tokens).
+- `references/`: 15 focused guides (discovery, adaptable architecture, widgets/state, errors and resources, refactors, migrations, performance, testing, security/a11y, scoring and sources).
+- `templates/`: project convention profile, audit report, refactor plan, review checklist, prompts, and a suggested `analysis_options.yaml`.
 
-## Instalación
+There is no bundled binary or script. The skill drives the official Dart/Flutter tooling directly: `dart format`, `dart analyze` / `flutter analyze`, `flutter test`, `dart fix --dry-run`, the analyzer lints, and the Dart/Flutter MCP server when it is installed.
 
-La raíz de este repositorio **es** la carpeta de la skill (contiene `SKILL.md`). Instalarla consiste en dejar esta carpeta, con el nombre `flutter-engineering-guardrails`, en el directorio de skills de tu agente. Sustituye `<url-del-repositorio>` por la URL de este repositorio.
+## Installation
 
-### Requisitos
+The root of this repository **is** the skill folder (it contains `SKILL.md`). Installing it means placing this folder, named `flutter-engineering-guardrails`, in your agent's skills directory. Replace `<repository-url>` with this repository's URL.
 
-| Para | Necesitas |
+### Requirements
+
+| For | You need |
 |---|---|
-| Usar la skill (instrucciones y referencias) | Solo el agente: Claude Code, Codex o Hermes Agent. Y `git` para clonar |
-| Que el agente compruebe el proyecto (`dart format`, `analyze`, tests) | Flutter/Dart SDK en el `PATH` |
-| Las herramientas opcionales `flutter-rails-audit` y `flutter-rails-check` | Rust 1.96 o superior con Cargo ([rustup](https://rustup.rs); comprueba tu versión con `rustc --version` y actualiza con `rustup update stable`). En **Windows**, además, Visual Studio Build Tools con la carga de trabajo «Desarrollo para el escritorio con C++» (el enlazador de Rust para MSVC). En **macOS**, `xcode-select --install`. En **Linux**, un compilador de C (`build-essential` o equivalente) |
+| Using the skill (instructions and references) | Only the agent: Claude Code, Codex or Hermes Agent. Plus `git` to clone |
+| Letting the agent check the project (`dart format`, `analyze`, tests) | Flutter/Dart SDK on the `PATH` |
+| Code search for heuristic signals (recommended) | [ripgrep](https://github.com/BurntSushi/ripgrep) (`rg`) on the `PATH`; see [Install ripgrep](#install-ripgrep). Without it, the agent falls back to `git grep` |
+| Richer diagnostics (optional) | The Dart/Flutter MCP server |
 
-### Dónde va la skill en cada agente
+### Where the skill goes for each agent
 
-| Agente | Personal (todos tus proyectos) | De proyecto (se versiona con el repo) |
+| Agent | Personal (all your projects) | Project (versioned with the repo) |
 |---|---|---|
-| Claude Code | `~/.claude/skills/flutter-engineering-guardrails/` | `<proyecto>/.claude/skills/flutter-engineering-guardrails/` |
-| Codex | `~/.agents/skills/flutter-engineering-guardrails/` | `<proyecto>/.agents/skills/flutter-engineering-guardrails/` |
-| Hermes Agent | `~/.hermes/skills/flutter-engineering-guardrails/` | `<proyecto>/.hermes/skills/flutter-engineering-guardrails/` o `<proyecto>/.agents/skills/…` |
+| Claude Code | `~/.claude/skills/flutter-engineering-guardrails/` | `<project>/.claude/skills/flutter-engineering-guardrails/` |
+| Codex | `~/.agents/skills/flutter-engineering-guardrails/` | `<project>/.agents/skills/flutter-engineering-guardrails/` |
+| Hermes Agent | `~/.hermes/skills/flutter-engineering-guardrails/` | `<project>/.hermes/skills/flutter-engineering-guardrails/` or `<project>/.agents/skills/…` |
 
-En Windows, `~` es tu carpeta de usuario (`$HOME` en PowerShell, por ejemplo `C:\Users\<usuario>`).
+On Windows, `~` is your user folder (`$HOME` in PowerShell, e.g. `C:\Users\<user>`).
 
 ### Claude Code
 
@@ -39,23 +39,23 @@ macOS / Linux:
 
 ```bash
 # Personal
-git clone <url-del-repositorio> ~/.claude/skills/flutter-engineering-guardrails
+git clone <repository-url> ~/.claude/skills/flutter-engineering-guardrails
 
-# O de proyecto (desde la raíz del proyecto)
-git clone <url-del-repositorio> .claude/skills/flutter-engineering-guardrails
+# Or per project (from the project root)
+git clone <repository-url> .claude/skills/flutter-engineering-guardrails
 ```
 
 Windows (PowerShell):
 
 ```powershell
 # Personal
-git clone <url-del-repositorio> "$HOME\.claude\skills\flutter-engineering-guardrails"
+git clone <repository-url> "$HOME\.claude\skills\flutter-engineering-guardrails"
 
-# O de proyecto (desde la raíz del proyecto)
-git clone <url-del-repositorio> ".claude\skills\flutter-engineering-guardrails"
+# Or per project (from the project root)
+git clone <repository-url> ".claude\skills\flutter-engineering-guardrails"
 ```
 
-Claude Code detecta las skills nuevas sin reiniciar. Si el directorio `skills` no existía al abrir la sesión, ejecuta `/reload-skills`. Para invocarla a mano: `/flutter-engineering-guardrails`.
+Claude Code picks up new skills without a restart. If the `skills` directory did not exist when the session started, run `/reload-skills`. To invoke it manually: `/flutter-engineering-guardrails`.
 
 ### Codex
 
@@ -63,23 +63,23 @@ macOS / Linux:
 
 ```bash
 # Personal
-git clone <url-del-repositorio> ~/.agents/skills/flutter-engineering-guardrails
+git clone <repository-url> ~/.agents/skills/flutter-engineering-guardrails
 
-# O de proyecto (desde la raíz del proyecto)
-git clone <url-del-repositorio> .agents/skills/flutter-engineering-guardrails
+# Or per project (from the project root)
+git clone <repository-url> .agents/skills/flutter-engineering-guardrails
 ```
 
 Windows (PowerShell):
 
 ```powershell
 # Personal
-git clone <url-del-repositorio> "$HOME\.agents\skills\flutter-engineering-guardrails"
+git clone <repository-url> "$HOME\.agents\skills\flutter-engineering-guardrails"
 
-# O de proyecto (desde la raíz del proyecto)
-git clone <url-del-repositorio> ".agents\skills\flutter-engineering-guardrails"
+# Or per project (from the project root)
+git clone <repository-url> ".agents\skills\flutter-engineering-guardrails"
 ```
 
-Codex detecta las skills nuevas automáticamente; si no aparece, reinicia Codex. Para comprobarla: `/skills`, o mencionarla con `$flutter-engineering-guardrails`.
+Codex detects new skills automatically; if it does not show up, restart Codex. To check: `/skills`, or mention it with `$flutter-engineering-guardrails`.
 
 ### Hermes Agent
 
@@ -87,118 +87,123 @@ macOS / Linux:
 
 ```bash
 # Personal
-git clone <url-del-repositorio> ~/.hermes/skills/flutter-engineering-guardrails
+git clone <repository-url> ~/.hermes/skills/flutter-engineering-guardrails
 
-# O de proyecto (desde la raíz del proyecto)
-git clone <url-del-repositorio> .hermes/skills/flutter-engineering-guardrails
+# Or per project (from the project root)
+git clone <repository-url> .hermes/skills/flutter-engineering-guardrails
 ```
 
 Windows (PowerShell):
 
 ```powershell
 # Personal
-git clone <url-del-repositorio> "$HOME\.hermes\skills\flutter-engineering-guardrails"
+git clone <repository-url> "$HOME\.hermes\skills\flutter-engineering-guardrails"
 
-# O de proyecto (desde la raíz del proyecto)
-git clone <url-del-repositorio> ".hermes\skills\flutter-engineering-guardrails"
+# Or per project (from the project root)
+git clone <repository-url> ".hermes\skills\flutter-engineering-guardrails"
 ```
 
-Las skills de proyecto solo se cargan cuando confías en el repositorio: ejecuta `hermes skills trust` en su raíz. Para comprobarla: `hermes skills list`.
+Project skills are only loaded once you trust the repository: run `hermes skills trust` at its root. To check: `hermes skills list`.
 
-### Una sola copia para varios agentes
+### One copy for several agents
 
-Clona la skill una vez y enlázala desde el directorio de cada agente. Así un `git pull` la actualiza en todos.
+Clone the skill once and link it from each agent's directory, so a single `git pull` updates all of them.
 
 macOS / Linux:
 
 ```bash
-git clone <url-del-repositorio> ~/skills/flutter-engineering-guardrails
+git clone <repository-url> ~/skills/flutter-engineering-guardrails
 mkdir -p ~/.claude/skills ~/.agents/skills ~/.hermes/skills
 ln -s ~/skills/flutter-engineering-guardrails ~/.claude/skills/flutter-engineering-guardrails
 ln -s ~/skills/flutter-engineering-guardrails ~/.agents/skills/flutter-engineering-guardrails
 ln -s ~/skills/flutter-engineering-guardrails ~/.hermes/skills/flutter-engineering-guardrails
 ```
 
-Windows (PowerShell; las *junctions* no necesitan permisos de administrador):
+Windows (PowerShell; junctions do not need administrator rights):
 
 ```powershell
-git clone <url-del-repositorio> "$HOME\skills\flutter-engineering-guardrails"
+git clone <repository-url> "$HOME\skills\flutter-engineering-guardrails"
 foreach ($dir in ".claude", ".agents", ".hermes") {
   New-Item -ItemType Directory -Force "$HOME\$dir\skills" | Out-Null
   New-Item -ItemType Junction -Path "$HOME\$dir\skills\flutter-engineering-guardrails" -Target "$HOME\skills\flutter-engineering-guardrails" | Out-Null
 }
 ```
 
-### Compilar las herramientas de Rust (opcional)
+### Install ripgrep
 
-La skill funciona sin ellas. Los ejecutables dependen de la plataforma y no se incluyen en el repositorio: compílalos en cada equipo, desde la carpeta donde instalaste la skill.
+The audit searches in `references/refactor-audit.md` are written for `rg`. Install it once per machine, together with the skill:
 
-macOS / Linux:
+| Platform | Command |
+|---|---|
+| Windows | `winget install --id BurntSushi.ripgrep.MSVC --exact` (or `choco install ripgrep`, or `scoop install ripgrep`) |
+| macOS | `brew install ripgrep` |
+| Debian / Ubuntu | `sudo apt install ripgrep` |
+| Fedora | `sudo dnf install ripgrep` |
+| Arch | `sudo pacman -S ripgrep` |
 
-```bash
-cd ~/.claude/skills/flutter-engineering-guardrails   # o la ruta donde la instalaste
-cargo test --locked --manifest-path rust/Cargo.toml
-cargo build --release --locked --manifest-path rust/Cargo.toml
-./rust/target/release/flutter-rails-audit --help
-```
-
-Windows (PowerShell):
-
-```powershell
-cd "$HOME\.claude\skills\flutter-engineering-guardrails"   # o la ruta donde la instalaste
-cargo test --locked --manifest-path rust\Cargo.toml
-cargo build --release --locked --manifest-path rust\Cargo.toml
-.\rust\target\release\flutter-rails-audit.exe --help
-```
-
-`--help` muestra el uso y termina con código 2: es lo esperado. Los ejecutables quedan en `rust/target/release/` (`.exe` en Windows). El agente los busca ahí, según `SKILL.md`.
-
-### Actualizar y desinstalar
-
-- **Actualizar:** `git pull` dentro de la carpeta de la skill y, si usas las herramientas, vuelve a ejecutar `cargo build --release --locked --manifest-path rust/Cargo.toml`.
-- **Desinstalar:** borra la carpeta `flutter-engineering-guardrails` del directorio de skills, o el enlace si usaste una sola copia.
-
-Las rutas de cada agente pueden cambiar entre versiones. Documentación oficial: [Claude Code](https://code.claude.com/docs/en/skills), [Codex](https://learn.chatgpt.com/docs/build-skills), [Hermes Agent](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills/).
-
-## Usar
-
-En el agente:
-
-- «Usa `flutter-engineering-guardrails` en modo **audit** para revisar este proyecto. No modifiques código».
-- «Modo **implement**: añade la nueva pantalla respetando nuestro Provider/ViewModel».
-- «Modo **refactor**: mejora esta pantalla sin cambiar su comportamiento; crea pruebas antes».
-- «Modo **deep-refactor**: compara extraer features, nuevas capas o dejar como está. Quiero primero el análisis».
-
-Si compilaste las herramientas, puedes ejecutarlas tú mismo desde la raíz de cualquier proyecto Flutter (`<skill>` es la carpeta donde instalaste la skill):
+Then check it from a **new** terminal (on Windows, winget updates the `PATH` only for shells opened after the install, so restart the agent too if it was running):
 
 ```bash
-<skill>/rust/target/release/flutter-rails-audit --root .
-<skill>/rust/target/release/flutter-rails-audit --root . --format json --output flutter-rails-audit.json
-<skill>/rust/target/release/flutter-rails-check --root . --mode quick
+rg --version
 ```
 
-Para mantener estas normas también en cada revisión, copia el bloque de `templates/always-on-agent-rule.md` a `AGENTS.md`, `CLAUDE.md` o la configuración equivalente. Para CI, consulta `references/quality-gates-and-ci.md`.
+Other platforms and prebuilt binaries: [ripgrep installation guide](https://github.com/BurntSushi/ripgrep#installation). Some agents bundle their own search tool; installing `rg` still matters because the skill's commands run in the agent's shell.
 
-El escáner es **heurístico**, no sustituye `dart analyze`, tests, Flutter DevTools ni revisión humana. `flutter-rails-check` no hace `git commit`, `dart fix --apply` ni `flutter pub upgrade`.
+### Update and uninstall
 
-## Perfil de proyecto
+- **Update:** `git pull` inside the skill folder. There is nothing to build.
+- **Uninstall:** delete the `flutter-engineering-guardrails` folder from the skills directory, or the link if you used a single copy.
 
-Copia `templates/project-profile.yaml` en la raíz de tu proyecto como `.flutter-rails.yaml` y adapta sus valores. Es un **contrato legible por humanos/agentes**: no implica que un CLI externo lo lea o lo aplique automáticamente. Tiene prioridad sobre las recomendaciones genéricas de esta skill, salvo errores de seguridad/corrección.
+Agent paths may change between versions. Official docs: [Claude Code](https://code.claude.com/docs/en/skills), [Codex](https://learn.chatgpt.com/docs/build-skills), [Hermes Agent](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills/).
 
-El perfil de ejemplo representa una app Flutter Web existente con Provider/ViewModel y punto de corte responsive heredado a modo ilustrativo. Cambia esos datos por los reales del proyecto.
+## Usage
 
-## Filosofía
+In the agent:
 
-**Rails para impedir errores, no rieles para imponer estilos:** corrección, seguridad, ciclo de vida y pruebas son restricciones fuertes; arquitectura, número de capas, tipos de widgets y estructura de carpetas se deciden con evidencia.
+- "Use `flutter-engineering-guardrails` in **audit** mode to review this project. Do not modify code."
+- "**implement** mode: add the new screen following our Provider/ViewModel setup."
+- "**refactor** mode: improve this screen without changing its behavior; write tests first."
+- "**deep-refactor** mode: compare extracting features, adding layers, or leaving it as is. I want the analysis first."
 
-Ver `references/sources-and-rationale.md` para la procedencia de las recomendaciones, atribuciones y límites.
+The checks the agent runs are the same ones you can run yourself from the root of any Flutter project:
 
-## Limitaciones del port a Rust
+```bash
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze --no-pub
+flutter test --no-pub
+dart fix --dry-run
+```
 
-El escáner usa patrones heurísticos, no un parser del AST de Dart. No confundir rendimiento del binario con mayor precisión de los hallazgos. Los ejecutables se compilan para cada plataforma/arquitectura (Windows, Linux, macOS) y **no se incluyen precompilados** en este repositorio (`rust/target/` está en `.gitignore`). Para que el agente invoque los comandos, primero ejecutar `cargo build --release` en su plataforma. Los checks ejecutan Flutter/Dart SDK y pueden crear cachés propios de esas herramientas; nunca aplican correcciones automáticamente.
+`flutter analyze` exits non-zero even when there are only *info* diagnostics (use `--no-fatal-infos` to change that); `dart analyze` does not fail on infos by default. Read the output before concluding there are errors. None of these commands modify source files; the skill never runs `git commit`, `dart fix --apply` or `flutter pub upgrade` on its own.
 
-**Validación (2026-11-13, Windows x64, Rust 1.96, Flutter 3.50 / Dart 3.14):** `cargo build --release` y `cargo test` pasan (4 tests). Ambos binarios se ejecutaron en solo lectura sobre una app Flutter desktop real (~1.200 archivos, ~200k líneas): `flutter-rails-audit` tardó 0,2 s y una revisión manual de sus señales mostró muchos falsos positivos, como corresponde a un escáner heurístico; `flutter-rails-check --mode quick` ejecutó formato y análisis correctamente. Nota: `flutter analyze` termina con error también cuando solo hay avisos *info*, y `flutter-rails-check` lo reporta como `FAIL`; revisa la salida antes de concluir que hay errores.
+To get the guardrails' static checks from the analyzer itself, merge [`templates/analysis_options.yaml`](templates/analysis_options.yaml) into your project's `analysis_options.yaml`. It extends `flutter_lints` with `avoid_void_async`, `cancel_subscriptions`, `close_sinks`, `discarded_futures`, `unawaited_futures` and `avoid_dynamic_calls`. On an existing project, measure the current baseline first (see `references/quality-gates-and-ci.md`).
 
-## Licencia
+Patterns no lint covers (undisposed controllers, `Timer.periodic`, `FutureBuilder` futures created in `build`, `setState(() async`, file-wide suppressions, mixed navigation APIs, large files) are found with `rg` (or `git grep` as a fallback); the patterns are in `references/refactor-audit.md`. For example:
 
-MIT. Ver [`LICENSE`](LICENSE).
+```bash
+rg -n --type dart -g '!*.g.dart' -g '!*.freezed.dart' 'Timer\.periodic\(' lib
+```
+
+Search hits are **heuristic leads**, not confirmed bugs.
+
+To keep these rules active in every review, copy the block in `templates/always-on-agent-rule.md` into `AGENTS.md`, `CLAUDE.md` or the equivalent configuration. For CI, see `references/quality-gates-and-ci.md`.
+
+## Project profile
+
+Copy `templates/project-profile.yaml` to your project root as `.flutter-rails.yaml` and adapt its values. It is a **contract readable by humans and agents**: no tool reads or enforces it automatically. It takes precedence over this skill's generic recommendations, except for security/correctness issues.
+
+The example profile describes an existing Flutter Web app with Provider/ViewModel and a legacy responsive breakpoint, for illustration. Replace those values with your project's real ones.
+
+## Philosophy
+
+**Rails to prevent mistakes, not rails to impose style:** correctness, security, lifecycle and tests are hard constraints; architecture, number of layers, widget types and folder structure are decided with evidence.
+
+See `references/sources-and-rationale.md` for where the recommendations come from, attributions and limits.
+
+## Validation
+
+**2026-11-14, Windows x64, Flutter 3.50 / Dart 3.14:** the lints in `templates/analysis_options.yaml` resolve with no unknown-rule warnings and each fires on a probe file that reproduces the old Rust scanner's rules; the search patterns in `references/refactor-audit.md` match the remaining cases on the same file with both ripgrep 15.2.0 and `git grep`, and skip generated files.
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).
