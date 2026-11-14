@@ -24,7 +24,7 @@ The `--no-pub` option assumes dependencies have already been fetched; the pipeli
 Exit codes differ: `dart analyze` fails on errors and warnings but not on *info* diagnostics by default (`--fatal-infos` to fail on them); `flutter analyze` also fails on *info* unless `--no-fatal-infos` is passed. Pick the behavior deliberately and document it in CI.
 
 - A PR should be blocked by formatting failures, the configured strict analysis and relevant tests when the environment allows it.
-- Pattern searches for heuristic signals (see [refactor-audit](refactor-audit.md)) are **informative**, not an automatic blocking gate (false positives). If a signal matters enough to block, prefer an analyzer lint that covers it.
+- The audit tool and pattern searches for heuristic signals (see [refactor-audit](refactor-audit.md)) are **informative**, not an automatic blocking gate: they always exit 0 when a report is produced, and their leads need human confirmation. If a signal matters enough to block, prefer an analyzer lint that covers it.
 - Do not publish "0 warnings" metrics if the corresponding set was not measured.
 
 ## Recommended lints

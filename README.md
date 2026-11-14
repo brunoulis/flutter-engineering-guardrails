@@ -7,8 +7,9 @@ A portable agent skill for **writing, auditing and refactoring Flutter/Dart code
 - `SKILL.md`: main policy, modes and reference routing (loads only what the task needs, to save tokens).
 - `references/`: 15 focused guides (discovery, adaptable architecture, widgets/state, errors and resources, refactors, migrations, performance, testing, security/a11y, scoring and sources).
 - `templates/`: project convention profile, audit report, refactor plan, review checklist, prompts, and a suggested `analysis_options.yaml`.
+- `tool/`: `flutter_rails_audit`, a read-only Dart audit tool built on `package:analyzer` for the guardrail rules no lint covers (with its own tests).
 
-There is no bundled binary or script. The skill drives the official Dart/Flutter tooling directly: `dart format`, `dart analyze` / `flutter analyze`, `flutter test`, `dart fix --dry-run`, the analyzer lints, and the Dart/Flutter MCP server when it is installed.
+The skill drives the official Dart/Flutter tooling directly: `dart format`, `dart analyze` / `flutter analyze`, `flutter test`, `dart fix --dry-run`, the analyzer lints, and the Dart/Flutter MCP server when it is installed. The audit tool fills the gap the lints leave, in Dart, with nothing to compile.
 
 ## Installation
 
@@ -20,6 +21,7 @@ The root of this repository **is** the skill folder (it contains `SKILL.md`). In
 |---|---|
 | Using the skill (instructions and references) | Only the agent: Claude Code, Codex or Hermes Agent. Plus `git` to clone |
 | Letting the agent check the project (`dart format`, `analyze`, tests) | Flutter/Dart SDK on the `PATH` |
+| The audit tool in `tool/` | Dart 3.13 or newer (any Flutter release that ships it), plus network on the first run to fetch its dependencies; see [Prepare the audit tool](#prepare-the-audit-tool) |
 | Code search for heuristic signals (recommended) | [ripgrep](https://github.com/BurntSushi/ripgrep) (`rg`) on the `PATH`; see [Install ripgrep](#install-ripgrep). Without it, the agent falls back to `git grep` |
 | Richer diagnostics (optional) | The Dart/Flutter MCP server |
 
@@ -129,9 +131,20 @@ foreach ($dir in ".claude", ".agents", ".hermes") {
 }
 ```
 
+### Prepare the audit tool
+
+The first `dart run` fetches the tool's dependencies by itself. To do it ahead of time, for example before working offline, run this from the folder where you installed the skill (it needs network the first time and writes only inside `tool/`):
+
+```bash
+dart pub get --directory tool
+dart run tool/bin/flutter_rails_audit.dart --help
+```
+
+`--help` prints the options and exits with code 0. To run the tool's own tests: `cd tool && dart test`.
+
 ### Install ripgrep
 
-The audit searches in `references/refactor-audit.md` are written for `rg`. Install it once per machine, together with the skill:
+The fallback searches in `references/refactor-audit.md` are written for `rg`, and agents use it for ad-hoc follow-up searches. Install it once per machine, together with the skill:
 
 | Platform | Command |
 |---|---|
@@ -151,7 +164,7 @@ Other platforms and prebuilt binaries: [ripgrep installation guide](https://gith
 
 ### Update and uninstall
 
-- **Update:** `git pull` inside the skill folder. There is nothing to build.
+- **Update:** `git pull` inside the skill folder, then `dart pub get --directory tool` in case the tool's dependencies changed. There is nothing to compile.
 - **Uninstall:** delete the `flutter-engineering-guardrails` folder from the skills directory, or the link if you used a single copy.
 
 Agent paths may change between versions. Official docs: [Claude Code](https://code.claude.com/docs/en/skills), [Codex](https://learn.chatgpt.com/docs/build-skills), [Hermes Agent](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills/).
@@ -178,13 +191,14 @@ dart fix --dry-run
 
 To get the guardrails' static checks from the analyzer itself, merge [`templates/analysis_options.yaml`](templates/analysis_options.yaml) into your project's `analysis_options.yaml`. It extends `flutter_lints` with `avoid_void_async`, `cancel_subscriptions`, `close_sinks`, `discarded_futures`, `unawaited_futures` and `avoid_dynamic_calls`. On an existing project, measure the current baseline first (see `references/quality-gates-and-ci.md`).
 
-Patterns no lint covers (undisposed controllers, `Timer.periodic`, `FutureBuilder` futures created in `build`, `setState(() async`, file-wide suppressions, mixed navigation APIs, large files) are found with `rg` (or `git grep` as a fallback); the patterns are in `references/refactor-audit.md`. For example:
+Rules no lint covers (undisposed controllers, controllers or futures created in `build`, `setState(() async`, uncancelled `Timer.periodic`, mixed navigation APIs, file-wide suppressions, large files) are checked by the audit tool. Run it from the root of the Flutter project (`<skill>` is the folder where you installed the skill):
 
 ```bash
-rg -n --type dart -g '!*.g.dart' -g '!*.freezed.dart' 'Timer\.periodic\(' lib
+dart run <skill>/tool/bin/flutter_rails_audit.dart --root .
+dart run <skill>/tool/bin/flutter_rails_audit.dart --root . --path lib --path test --format json --output flutter-rails-audit.json
 ```
 
-Search hits are **heuristic leads**, not confirmed bugs.
+It parses every non-generated `.dart` file with `package:analyzer`, so it understands which class creates a controller and whether that class disposes it, instead of matching text. It sees syntax, not types: its findings are **heuristic leads**, not confirmed bugs, and it never modifies the project. The rules and what each one deliberately ignores are listed in `references/refactor-audit.md`, together with `rg` / `git grep` fallback patterns for machines where the tool cannot run.
 
 To keep these rules active in every review, copy the block in `templates/always-on-agent-rule.md` into `AGENTS.md`, `CLAUDE.md` or the equivalent configuration. For CI, see `references/quality-gates-and-ci.md`.
 
@@ -202,7 +216,12 @@ See `references/sources-and-rationale.md` for where the recommendations come fro
 
 ## Validation
 
-**2026-11-14, Windows x64, Flutter 3.50 / Dart 3.14:** the lints in `templates/analysis_options.yaml` resolve with no unknown-rule warnings and each fires on a probe file that reproduces the old Rust scanner's rules; the search patterns in `references/refactor-audit.md` match the remaining cases on the same file with both ripgrep 15.2.0 and `git grep`, and skip generated files.
+**2026-11-14, Windows x64, Flutter 3.50 / Dart 3.14, analyzer 14.7.0:**
+
+- The lints in `templates/analysis_options.yaml` resolve with no unknown-rule warnings and each fires on a probe file that reproduces the old Rust scanner's rules. The fallback search patterns match the remaining cases on the same file with both ripgrep 15.2.0 and `git grep`.
+- `flutter_rails_audit`: 33 unit/CLI tests pass (`dart test`), `dart analyze` is clean.
+- On the Flutter framework (`packages/flutter`, 679 files, 527k lines, ~10 s including JIT startup): 0 syntax errors and 3 ownership leads, each worth a look. Two are app-lifetime `ValueNotifier`s in bindings and one is a fallback `ValueNotifier` created in `build()`. A false positive found in this run (a field controller reassigned in `build()` and disposed correctly) was fixed and covered by a test.
+- On the Flutter Gallery app (`dev/integration_tests/flutter_gallery`, 102 files): 10 ownership leads, and all 10 were confirmed by reading the source (controllers whose files never call `dispose`, and a `TextEditingController` built inside `build()`).
 
 ## License
 

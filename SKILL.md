@@ -8,7 +8,7 @@ description: >-
   Use modes audit, implement, refactor or deep-refactor. Prioritizes verified behavior,
   minimum useful complexity and project conventions over generic boilerplate.
 license: MIT
-compatibility: Flutter/Dart SDK for project checks (dart format, dart/flutter analyze, flutter test, dart fix --dry-run); ripgrep (rg) recommended for code search, git grep as fallback. No other runtime or build step.
+compatibility: Flutter/Dart SDK (Dart 3.13+) for project checks and the bundled Dart audit tool (tool/, one-time dart pub get); ripgrep (rg) recommended for ad-hoc search, git grep as fallback. No other runtime or build step.
 metadata:
   version: "1.0.0"
   family: "engineering-guardrails"
@@ -68,14 +68,16 @@ When ambiguous, use `audit` for diagnosis, `implement` for requested features, a
 
 ## Audit and tool usage
 
-Use the Dart/Flutter SDK tools directly; there is no bundled scanner or wrapper. Prefer the repo's own scripts/CI commands when they exist. Never run commands if the user forbids command execution.
+Use the Dart/Flutter SDK tools directly, plus the skill's read-only Dart audit tool for the rules no lint covers. Prefer the repo's own scripts/CI commands when they exist. Never run commands if the user forbids command execution.
 
 - **Verification (read-only):** run from the package root, only on directories that exist.
   - Format: `dart format --output=none --set-exit-if-changed lib test` (exit 1 = files would change; nothing is written).
   - Analyze: `dart analyze`, or `flutter analyze --no-pub` in Flutter apps. `flutter analyze` exits non-zero even for *info*-level diagnostics unless `--no-fatal-infos` is passed; read the output before reporting "errors".
   - Tests: `flutter test --no-pub <target>` in quick checks; the whole suite only when the change justifies it. `dart test` for pure Dart packages.
   - Fixes: `dart fix --dry-run` only; a scoped `--apply` needs explicit scope (R9).
-- **Static audit = analyzer lints + targeted search.** The analyzer parses real Dart, so it is the primary source of structural signals. Report its diagnostics under the project's own `analysis_options.yaml`; if the user wants the guardrail lints, propose [`templates/analysis_options.yaml`](templates/analysis_options.yaml) (do not add it unasked). Patterns with no lint (undisposed controllers, `Timer.periodic`, `FutureBuilder` futures created in `build`, `setState(() async`, file-wide suppressions, mixed navigation APIs, large files) are searched with `rg` (check `rg --version` first; if it is missing, use `git grep` and suggest installing ripgrep per the README); see the search table in [refactor-audit](references/refactor-audit.md). Search hits are **heuristic leads, not proven bugs**. Do not change files in `audit` mode.
+- **Static audit = analyzer lints + the Dart audit tool.** The analyzer parses and resolves real Dart, so it is the primary source of signals. Report its diagnostics under the project's own `analysis_options.yaml`; if the user wants the guardrail lints, propose [`templates/analysis_options.yaml`](templates/analysis_options.yaml) (do not add it unasked).
+- **Audit tool (read-only):** `dart run <skill-dir>/tool/bin/flutter_rails_audit.dart --root <flutter-project> [--path lib] [--format text|json] [--output FILE]`. It parses each file with `package:analyzer` and reports the rules no lint covers: `undisposed-controller`, `controller-created-in-build`, `future-created-in-build`, `setstate-async-callback`, `uncancelled-periodic-timer`, `mixed-navigation-styles`, `filewide-lint-suppression`, `large-dart-file`. The first `dart run` resolves the tool's dependencies by itself (writes `<skill-dir>/tool/.dart_tool/`; needs network unless the packages are already in the pub cache). If that fails, run `dart pub get --directory <skill-dir>/tool` or ask the user to. Exit 0 = report produced; 64 = usage error. It never modifies the audited project.
+- Its findings are **heuristic leads, not proven bugs** (syntax only: no type resolution, no cross-file ownership). Inspect each before reporting it as probable/confirmed. If the tool cannot run, fall back to the `rg`/`git grep` patterns in [refactor-audit](references/refactor-audit.md) (check `rg --version`; suggest installing ripgrep per the README if missing). Do not change files in `audit` mode.
 - **MCP:** Use the Dart/Flutter MCP server when installed (analyzer diagnostics, symbol resolution/LSP, pub, runtime errors of a running app) and official Flutter skills for narrow tasks. Use the tool names the server actually exposes; do not invent them or assume availability. The skill is usable without MCP.
 
 ## Refactor guardrails (mandatory when modifying old code)
@@ -85,7 +87,7 @@ Use the Dart/Flutter SDK tools directly; there is no bundled scanner or wrapper.
 - Rank by **risk × impact × evidence**, not by line count alone. Address P0 data loss/crash/security and P1 lifecycle/races before P2 testability and P3 style.
 - One structural theme per slice, minimal crossing of component boundaries, test after every slice, maintain an easy rollback. `git bisect`/small commits are useful if the user controls commits; **never commit without authorization**.
 - Rewrites must win a written comparison: incremental effort, regression surface, testability, integration complexity, deadline and rollback. Prefer feature-by-feature migration in running app over speculative full rewrite.
-- In review output, distinguish **confirmed** (repro/test/tool evidence), **probable** (specific code reasoning) and **heuristic** (search hit or lint pattern not yet inspected in context).
+- In review output, distinguish **confirmed** (repro/test/tool evidence), **probable** (specific code reasoning) and **heuristic** (audit-tool lead, search hit or lint pattern not yet inspected in context).
 
 ## Output contracts
 
