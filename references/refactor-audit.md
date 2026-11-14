@@ -49,7 +49,7 @@ Change risk: low / affects only that flow.
 
 **Confidence:** `confirmed` = test, stack trace, reproduction or unambiguous diagnosis; `probable` = specific reasoning about the real flow; `heuristic` = static search or lint pattern not yet confirmed. **Never mark "confirmed leak" based on a controller's name.**
 
-### Static signals: analyzer first, then targeted search
+### Static signals: analyzer first, then the audit tool
 
 1. **Analyzer.** Run `dart analyze` (or `flutter analyze --no-pub`) under the project's own `analysis_options.yaml` and report the diagnostics as they are. They come from the real Dart parser and resolver. If the project lacks the lints below and the user agrees, evaluate them with [`../templates/analysis_options.yaml`](../templates/analysis_options.yaml) **without committing it** unless asked:
 
@@ -63,7 +63,30 @@ Change risk: low / affects only that flow.
    | `discarded_futures` / `unawaited_futures` | futures dropped without `await` or `unawaited` |
    | `avoid_dynamic_calls` | member access on `dynamic`, typical of raw `Map<String, dynamic>` handling |
 
-2. **Targeted search** for patterns no lint covers, run from the package root. Use `rg` (ripgrep). Check `rg --version` first; if it is missing, use `git grep` and suggest installing ripgrep (see the README). The regexes below work unchanged in both. Always exclude generated files (`*.g.dart`, `*.freezed.dart`, `*.gr.dart`, `*.mocks.dart`); `--type dart` with `lib` (and `test` when relevant) already keeps platform folders out.
+2. **Audit tool** for the rules no lint covers. It parses each file with `package:analyzer` (syntax tree, no type resolution) and never modifies the project:
+
+   ```bash
+   # optional: the first `dart run` does this by itself (needs network unless cached)
+   dart pub get --directory <skill-dir>/tool
+
+   dart run <skill-dir>/tool/bin/flutter_rails_audit.dart --root . --format text
+   dart run <skill-dir>/tool/bin/flutter_rails_audit.dart --root . --path lib --path test --format json --output audit.json
+   ```
+
+   | Rule | Priority | Flags | Does not flag |
+   |---|---|---|---|
+   | `setstate-async-callback` | P1 | `setState(() async { ... })` | synchronous callbacks |
+   | `undisposed-controller` | P2 | a field the class itself fills with a disposable (`TextEditingController`, `ScrollController`, `PageController`, `AnimationController`, `TabController`, `FocusNode`, `ValueNotifier`, …), in its declaration or by assignment, with no `.dispose()` on it and no reference to it inside `dispose()`/`close()`/`onClose()` | controllers injected through the constructor; disposal via `?.`, cascades or a list iterated in `dispose()` |
+   | `controller-created-in-build` | P2 | a disposable constructed inside `build()`, e.g. `controller: TextEditingController()` or a `?? ValueNotifier(...)` fallback | `x ??= ...`; assignment to a field (the rule above checks its disposal) |
+   | `future-created-in-build` | P2 | `FutureBuilder(future: load())` / `StreamBuilder(stream: watch())` inside `build()` | a stored field, `_f ??= load()`, builders outside `build()` |
+   | `uncancelled-periodic-timer` | P2 | `Timer.periodic` stored in a variable/field never cancelled, or discarded without cancelling itself | `cancel()` on the holder, references in `dispose()`, `timer.cancel()` in the callback, a timer returned or passed on |
+   | `mixed-navigation-styles` | P2 | more than one of `Navigator.*`, `Get.to/off/back…`, go_router (`context.go/push/pop…`, `GoRouter.of`) across the scope | a single API |
+   | `filewide-lint-suppression` | P3 | `// ignore_for_file:` comments | the same text inside strings |
+   | `large-dart-file` | P3 | files over `--large-file-lines` (default 700) | |
+
+   The JSON report keeps `confidence: "heuristic"` and adds `basis: "syntax-tree"`, `parse_errors` (files with syntax errors are still audited) and `skipped`. Exit code 0 means a report was produced, whatever it contains; 64 is a usage error.
+
+3. **Fallback: targeted search** when the audit tool cannot run (no network for the first `dart pub get`, Dart older than 3.13) or for ad-hoc follow-up questions. Use `rg` (ripgrep), run from the package root. Check `rg --version` first; if it is missing, use `git grep` and suggest installing ripgrep (see the README). The regexes below work unchanged in both. Always exclude generated files (`*.g.dart`, `*.freezed.dart`, `*.gr.dart`, `*.mocks.dart`); `--type dart` with `lib` (and `test` when relevant) already keeps platform folders out.
 
    ```bash
    # ripgrep (preferred)
@@ -85,7 +108,7 @@ Change risk: low / affects only that flow.
 
    In the table, `\|` is an escaped pipe for Markdown; write `|` in the actual regex. Run the two dispose searches as separate commands and compare their output: piping one `rg` into another is shell-dependent on Windows (backslash paths).
 
-- Search hits are **heuristic leads**: they do not parse Dart, so expect false positives (comments, strings, ownership held elsewhere) and false negatives.
+- Audit-tool findings are **heuristic leads**: the tool sees syntax, not types, so a subclass of a controller or ownership handed to another file is invisible to it. Search hits are weaker still: they do not parse Dart, so expect false positives (comments, strings, ownership held elsewhere) and false negatives.
 - Neither lints nor searches replace instrumentation, tests or ownership inspection.
 - Do not assign "quality" percentages based on the number of findings.
 

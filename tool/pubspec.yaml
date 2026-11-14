@@ -1,0 +1,22 @@
+name: flutter_rails_audit
+description: >-
+  Read-only structural audit for Flutter/Dart code, part of the
+  flutter-engineering-guardrails skill. Parses Dart with package:analyzer and
+  reports leads for the guardrail rules that no analyzer lint covers.
+version: 2.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+executables:
+  flutter_rails_audit:
+
+dependencies:
+  analyzer: ^14.7.0
+  args: ^2.7.0
+  path: ^1.9.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.33.0
