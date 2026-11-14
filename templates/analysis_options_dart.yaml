@@ -1,0 +1,24 @@
+# Pure-Dart alternative to analysis_options.yaml (which is for Flutter).
+# Adopt only when requested, after checking the project's installed lints/SDK
+# and existing baseline. Requires a compatible package:lints dependency;
+# do not add or upgrade that dependency merely to copy this template.
+include: package:lints/recommended.yaml
+
+# Opt-in after measuring diagnostics:
+# analyzer:
+#   language:
+#     strict-casts: true
+#     strict-inference: true
+#     strict-raw-types: true
+
+linter:
+  rules:
+    - avoid_void_async
+    - cancel_subscriptions
+    - close_sinks
+    - discarded_futures
+    - unawaited_futures
+    - avoid_dynamic_calls
+
+# Do not blindly enable avoid_print for a CLI whose stdout is its public output.
+# Lints identify leads; unawaited() does not itself handle background errors.

@@ -1,30 +1,34 @@
 ---
 name: flutter-engineering-guardrails
 description: >-
-  Engineering rails for creating, reviewing, auditing and refactoring Flutter/Dart code.
-  Activate for Flutter features, widgets, Provider/ViewModel/BLoC/Riverpod state, Dart
-  async/lifecycle bugs, architecture decisions, Flutter web/desktop performance,
-  code quality reviews, technical debt, incremental refactors and deep migrations.
-  Use modes audit, implement, refactor or deep-refactor. Prioritizes verified behavior,
-  minimum useful complexity and project conventions over generic boilerplate.
+  Use when creating, reviewing or refactoring Dart libraries, packages, CLI tools,
+  services or Flutter apps. Applies to Dart types, public APIs, Futures/Streams,
+  resource ownership, isolates and dependency migrations, as well as Flutter
+  widgets, state, navigation, lifecycle, layout and performance.
 license: MIT
-compatibility: Flutter/Dart SDK (Dart 3.13+) for project checks and the bundled Dart audit tool (tool/, one-time dart pub get); ripgrep (rg) recommended for ad-hoc search, git grep as fallback. No other runtime or build step.
+compatibility: Project-compatible Dart SDK for Dart checks; Flutter SDK only for Flutter packages. Bundled audit tool requires Dart >=3.13.0 <4.0.0 and its own dependency resolution. The tool's minimum SDK does not set the audited project's minimum. ripgrep recommended; git grep fallback.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   family: "engineering-guardrails"
 ---
 
-# Flutter Engineering Guardrails
+# Dart and Flutter Engineering Guardrails
 
 **Mission:** Produce correct, readable, testable and maintainable Flutter/Dart code with evidence-based architecture and reversible refactors. A passing analyzer is the floor, not proof of quality. Prefer fewer concepts, clear ownership and measurable improvements. **Do not introduce architecture solely for aesthetic reasons.**
+
+## Select the package context first
+
+Dart is a first-class scope: libraries, command-line tools, services and shared packages do not require Flutter. Inspect the affected `pubspec.yaml`, imports, entry points and workspace membership; do not infer a Flutter application from a `.dart` extension. Use the language/core references for all Dart code, then load Flutter UI/state/lifecycle references only when applicable. A mixed workspace can require both sets of checks in different packages.
+
+For pure Dart, start with [language and API contracts](references/dart-quality-and-types.md) and [async, resources and I/O](references/dart-async-and-io.md). Use `dart analyze` and `dart test`; do not introduce Flutter, widgets, state libraries or `flutter_lints`. The historical skill ID/folder and CLI name remain `flutter-engineering-guardrails` / `flutter_rails_audit` for compatibility. UI-only report fields are N/A for Dart-only work.
 
 ## Non-negotiable rails
 
 1. **R0 — Grounding.** Inspect actual repository and SDK/dependency versions before proposing unfamiliar APIs. Use code search, `pubspec.yaml`, analyzer, Dart/Flutter MCP and official documentation when available. Never invent methods, package versions, test outcomes or benchmark numbers.
-2. **R1 — Preserve contracts.** For existing code, identify observable behavior, navigation, state, API shapes, persistence, responsive behavior and supported platforms. No silent public API or UX changes in a refactor.
+2. **R1 — Preserve contracts.** Identify public types/exports, subclassing rights, errors, collection ownership, I/O and supported runtimes; include navigation, state and UX for Flutter. No silent public API or UX changes in a refactor.
 3. **R2 — Project-first architecture.** Follow the existing working conventions. Treat Provider, ViewModel, Riverpod, BLoC, `setState`, repositories and feature folders as choices, not mandates. Never migrate libraries without a concrete benefit and migration plan.
 4. **R3 — One source of truth.** Define which object owns each state, controller, stream, timer, future, cache and navigation decision. Avoid duplicate mutable state and UI/business logic drift.
-5. **R4 — Async correctness.** Handle loading, empty, success and error paths as applicable; guard stale results and widget disposal; dispose resources owned by the component; avoid swallowing exceptions and side effects inside `build()`.
+5. **R4 — Async correctness.** Distinguish completion, timeout and cancellation; define stream ordering, error handling and awaited resource shutdown. For Flutter, also guard stale results and widget disposal, handle UI states and avoid side effects inside `build()`.
 6. **R5 — Right-sized abstractions.** Extract code when there is a testability, readability, reuse, ownership or change-frequency benefit. No automatic repository/use-case/service for every function, widget wrapper for every expression or package for every feature.
 7. **R6 — Safe UI.** Respect constraints, accessibility, text scaling, keyboard/focus, responsive targets and the project's design tokens. Do not use `kIsWeb` as a screen-width breakpoint.
 8. **R7 — Performance is evidence-based.** Avoid obvious hot-path work, repeated I/O in builds and eager giant lists. Measure before claiming improvements or adding caches/isolates/rebuild optimization.
@@ -32,6 +36,16 @@ metadata:
 10. **R9 — Incremental diffs.** Change only what is needed. Separate mechanical formatting, bug fixes, behavioral changes and architectural work. Avoid unrelated rewrites or repo-wide auto-fixes by default.
 11. **R10 — Verification.** Use the smallest sufficient set of formatter, analyzer, unit/widget/integration/regression tests; extend for risky changes. Report commands **actually run** and failures honestly.
 12. **R11 — Explain decisions.** Record *why* a boundary, provider or refactor is needed, alternatives rejected, compatibility/rollback risks and remaining uncertainty without excessive prose.
+
+### R0a — Version-aware package, plugin and SDK work
+
+Before using a package API, cleaning/refactoring its callers, or updating a dependency, verify the exact resolved version/source in the affected app or workspace package. Compare `pubspec.lock` with `.dart_tool/package_config.json` and the resolved package's metadata/source; inspect dependency overrides and git/path dependencies. For pub workspaces, locate the shared resolution at the workspace root. Constraints in `pubspec.yaml` alone do not establish the installed version, and stale generated metadata is not proof of current resolution. Identify the actual Dart SDK, package language version and any per-library language override; inspect the Flutter SDK only where relevant. Mark missing/conflicting evidence **UNVERIFIED** rather than silently resolving dependencies or upgrading the SDK.
+
+Consult official documentation for that package version **before changing library-dependent code**: versioned pub.dev API docs or maintainer documentation, relevant defaults, deprecations and platform behavior. For Flutter/Dart framework APIs, match the actual SDK release. If versioned docs are unavailable, use matching release/tag docs, changelogs, source and tests and state unresolved behavior. Latest examples and this skill's pinned examples do not prove compatibility with the project's SDK/packages.
+
+For an update, establish **current and intended target versions**, consult both sets of documentation and intervening migration/release notes, and assess Flutter/Dart SDK constraints, transitive packages, code generators and affected platform implementations. For native plugins, check applicable native dependency locks, build-tool requirements and minimum OS versions. Update only when requested or justified within the authorized task. Cleanup does not authorize `pub upgrade`, an SDK upgrade or a state/routing-library replacement; a newer release alone is not a reason to update.
+
+Inspect manifest/lockfile and generated/native configuration changes; keep unrelated dependencies unchanged. Run affected analysis, unit/widget/integration checks and target-platform builds or smoke tests where needed. Preserve UI, lifecycle, navigation and persistence contracts or identify intentional migration changes and rollback. Report versions/revisions, documentation URLs or local paths, rationale and actual checks. Reuse verified evidence while resolution, SDK, platform and task assumptions remain unchanged.
 
 ## Workflow: choose one mode
 
@@ -46,7 +60,7 @@ When ambiguous, use `audit` for diagnosis, `implement` for requested features, a
 
 ### Execution loop
 
-1. **Inventory:** inspect `git status`, `pubspec.yaml` and SDK constraints, `analysis_options.yaml`, relevant source/tests, routing, state package and existing conventions. Check whether a `.flutter-rails.yaml` profile exists; if absent infer without inventing. See [discovery](references/discovery-and-context.md).
+1. **Inventory:** classify each affected package as Dart library/CLI/service or Flutter, inspect `git status`, `pubspec.yaml`, SDK/language constraints, `analysis_options.yaml`, source/tests and existing conventions. Inspect routing/state only for relevant Flutter code. Apply R0a before library-dependent work. Read `.flutter-rails.yaml` if present; its historical name does not require Flutter. See [discovery](references/discovery-and-context.md).
 2. **Characterize:** define behavior and invariants (including errors, loading, nulls, navigation, platform and existing breakpoints). For refactors, create a regression test or record a manual characterization scenario before risky edits.
 3. **Choose design:** compare minimal in-place change vs local extraction vs new boundary. Use [architecture decision matrix](references/architecture-and-modularity.md), [UI and state](references/ui-state-and-layout.md) and [Dart quality](references/dart-quality-and-types.md).
 4. **Implement in slices:** small diffs with clear ownership and no unrelated migrations. For refactors follow [refactor execution](references/refactor-execution.md); for broader work [deep refactor](references/deep-refactor-and-migration.md).
@@ -57,6 +71,9 @@ When ambiguous, use `audit` for diagnosis, `implement` for requested features, a
 
 | Trigger | Read |
 |---|---|
+| Dart package, CLI/service, public API, null safety or collection ownership | `dart-quality-and-types.md`, `discovery-and-context.md` |
+| Futures, Streams, cancellation, resource shutdown, isolates or process/file I/O | `dart-async-and-io.md`, `testing-and-verification.md` |
+| Dart language/API evidence, community claims or executable counterexamples | [Dart evidence](references/dart-evidence.md) |
 | New feature or architectural decision | `discovery-and-context.md`, `architecture-and-modularity.md`, `dart-quality-and-types.md` |
 | Widgets, Provider/ViewModel, forms, navigation or responsive layout | `ui-state-and-layout.md`, `async-lifecycle-and-errors.md` |
 | Code review or technical debt report | `refactor-audit.md`, `anti-patterns-and-refactor-catalog.md`, `code-review-and-quality-score.md` |
@@ -71,14 +88,15 @@ When ambiguous, use `audit` for diagnosis, `implement` for requested features, a
 
 Use the Dart/Flutter SDK tools directly, plus the skill's read-only Dart audit tool for the rules no lint covers. Prefer the repo's own scripts/CI commands when they exist. Never run commands if the user forbids command execution.
 
-- **Verification (read-only):** run from the package root, only on directories that exist.
+- **Verification (no source edits):** run from the package root, only on directories that exist. Dependency resolution and build caches can write artifacts; inspect prepared dependency state before a strict read-only audit.
   - Format: `dart format --output=none --set-exit-if-changed lib test` (exit 1 = files would change; nothing is written).
   - Analyze: `dart analyze`, or `flutter analyze --no-pub` in Flutter apps. `flutter analyze` exits non-zero even for *info*-level diagnostics unless `--no-fatal-infos` is passed; read the output before reporting "errors".
   - Tests: `flutter test --no-pub <target>` in quick checks; the whole suite only when the change justifies it. `dart test` for pure Dart packages.
   - Fixes: `dart fix --dry-run` only; a scoped `--apply` needs explicit scope (R9).
-- **Static audit = analyzer lints + the Dart audit tool.** The analyzer parses and resolves real Dart, so it is the primary source of signals. Report its diagnostics under the project's own `analysis_options.yaml`; if the user wants the guardrail lints, propose [`templates/analysis_options.yaml`](templates/analysis_options.yaml) (do not add it unasked).
+- **Static audit:** the analyzer parses and resolves Dart and is the primary source of signals; use the custom auditor only for relevant additional leads. Preserve the project's `analysis_options.yaml`. If extra lints are requested, select the [Dart template](templates/analysis_options_dart.yaml) for pure Dart or the [Flutter template](templates/analysis_options.yaml) for Flutter. Check installed lint/SDK compatibility first; do not add either unasked.
 - **Audit tool (read-only):** `dart run <skill-dir>/tool/bin/flutter_rails_audit.dart --root <flutter-project> [--path lib] [--format text|json] [--output FILE]`. It parses each file with `package:analyzer` and reports the rules no lint covers: `undisposed-controller`, `controller-created-in-build`, `future-created-in-build`, `setstate-async-callback`, `uncancelled-periodic-timer`, `mixed-navigation-styles`, `filewide-lint-suppression`, `large-dart-file`. The first `dart run` resolves the tool's dependencies by itself (writes `<skill-dir>/tool/.dart_tool/`; needs network unless the packages are already in the pub cache). If that fails, run `dart pub get --directory <skill-dir>/tool` or ask the user to. Exit 0 = report produced; 64 = usage error. It never modifies the audited project.
 - Its findings are **heuristic leads, not proven bugs** (syntax only: no type resolution, no cross-file ownership). Inspect each before reporting it as probable/confirmed. If the tool cannot run, fall back to the `rg`/`git grep` patterns in [refactor-audit](references/refactor-audit.md) (check `rg --version`; suggest installing ripgrep per the README if missing). Do not change files in `audit` mode.
+- The tool accepts Dart source, but most custom rules target Flutter patterns. It does not verify general Dart API compatibility, deep immutability, timeout cancellation, stream backpressure or CLI contracts. Prefer the analyzer and behavioral tests for those questions; a clean tool report is not Dart coverage.
 - **MCP:** Use the Dart/Flutter MCP server when installed (analyzer diagnostics, symbol resolution/LSP, pub, runtime errors of a running app) and official Flutter skills for narrow tasks. Use the tool names the server actually exposes; do not invent them or assume availability. The skill is usable without MCP.
 
 ## Refactor guardrails (mandatory when modifying old code)

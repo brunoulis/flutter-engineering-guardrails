@@ -1,5 +1,7 @@
 # Async, ownership, lifecycle and failure handling
 
+This guide specializes in Flutter ownership and UI publication. For the Dart contracts underneath it, including timeout versus cancellation, async stream callbacks and awaited shutdown, read [Dart async and I/O](dart-async-and-io.md). Dart-only tasks do not require widget lifecycle mechanisms.
+
 ## Resource inventory (mandatory when touching a stateful screen)
 
 | Resource | Typical owner | Release / condition |

@@ -1,6 +1,16 @@
-# Flutter PR / agent-generated code — review checklist
+# Dart / Flutter PR / agent-generated code — review checklist
 
 > Mark YES / NO / N/A with evidence; do not check items automatically.
+
+Classify the package first. UI/state/navigation items are N/A for pure Dart; do not add Flutter dependencies or architecture to satisfy them.
+
+## Dart language and runtime contracts
+- [ ] Actual SDK, language version, resolved packages and matching documentation checked
+- [ ] Public exports, subtype rights, errors and consumer compatibility preserved
+- [ ] Input validation and alias/snapshot/equality semantics verified where changed
+- [ ] Timeout, cancellation, stream ordering and owned shutdown distinguished
+- [ ] CLI stdout/stderr/exit codes and process/file boundaries checked where applicable
+- [ ] Native/browser assumptions verified on the relevant target, or marked unverified
 
 ## Correctness
 - [ ] Acceptance criteria and edge cases defined

@@ -1,17 +1,21 @@
-# Flutter Engineering Guardrails
+# Dart and Flutter Engineering Guardrails
 
-A portable agent skill for **writing, auditing and refactoring Flutter/Dart code** with engineering discipline, without imposing an architecture the project does not use. Inspired by the approach of `rust-engineering-guardrails`, three technical discussion threads on r/FlutterDev, and the official Flutter/Dart guides.
+A portable agent skill for **writing, auditing and refactoring Dart and Flutter code**: Dart libraries, packages, CLI tools and services, plus Flutter applications. It follows the project's conventions and uses official language/API documentation, real technical discussions and executable counterexamples. The historical ID/folder remains `flutter-engineering-guardrails` so existing installations and invocations keep working.
+
+For Dart-only work, start with [language/API contracts](references/dart-quality-and-types.md) and [async/resources/I/O](references/dart-async-and-io.md). Flutter UI/state guidance applies only where relevant. [Dart research and tests](references/dart-evidence.md) distinguish documented behavior, reported problems and verification limits.
 
 ## Contents
 
 - `SKILL.md`: main policy, modes and reference routing (loads only what the task needs, to save tokens).
-- `references/`: 15 focused guides (discovery, adaptable architecture, widgets/state, errors and resources, refactors, migrations, performance, testing, security/a11y, scoring and sources).
-- `templates/`: project convention profile, audit report, refactor plan, review checklist, prompts, and a suggested `analysis_options.yaml`.
+- `references/`: focused guides for Dart language/API contracts, async/I/O, discovery, architecture, Flutter UI/state, refactoring, testing and evidence.
+- `templates/`: project profile, audit/refactor/review formats, prompts, and separate suggested analyzer configurations for Dart and Flutter.
 - `tool/`: `flutter_rails_audit`, a read-only Dart audit tool built on `package:analyzer` for the guardrail rules no lint covers (with its own tests).
 
-The skill drives the official Dart/Flutter tooling directly: `dart format`, `dart analyze` / `flutter analyze`, `flutter test`, `dart fix --dry-run`, the analyzer lints, and the Dart/Flutter MCP server when it is installed. The audit tool fills the gap the lints leave, in Dart, with nothing to compile.
+The skill uses `dart format`, `dart analyze`, `dart test` and, for Flutter packages, `flutter analyze` / `flutter test`. It also supports scoped `dart fix --dry-run`, analyzer lints and the available Dart/Flutter MCP tools. The custom auditor supplies a limited set of heuristic leads, mainly for Flutter patterns; it does not verify every Dart contract discussed by the skill.
 
 ## Installation
+
+Start with [INSTALL.md](INSTALL.md) for folder or skills CLI installation, agent/scope selection and discovery checks. It separates installing the instructions from preparing the optional Dart tool. Dart-only projects do not require Flutter. The manual routes below remain available.
 
 The root of this repository **is** the skill folder (it contains `SKILL.md`). Installing it means placing this folder, named `flutter-engineering-guardrails`, in your agent's skills directory. Replace `<repository-url>` with this repository's URL.
 
@@ -20,8 +24,8 @@ The root of this repository **is** the skill folder (it contains `SKILL.md`). In
 | For | You need |
 |---|---|
 | Using the skill (instructions and references) | Only the agent: Claude Code, Codex or Hermes Agent. Plus `git` to clone |
-| Letting the agent check the project (`dart format`, `analyze`, tests) | Flutter/Dart SDK on the `PATH` |
-| The audit tool in `tool/` | Dart 3.13 or newer (any Flutter release that ships it), plus network on the first run to fetch its dependencies; see [Prepare the audit tool](#prepare-the-audit-tool) |
+| Letting the agent check the project (`dart format`, `analyze`, tests) | Project-compatible Dart SDK; Flutter SDK only for Flutter packages |
+| The audit tool in `tool/` | Dart >=3.13.0 <4.0.0, standalone or bundled with Flutter, plus its dependencies; this does not impose a minimum SDK on the audited project. See [Prepare the audit tool](#prepare-the-audit-tool) |
 | Code search for heuristic signals (recommended) | [ripgrep](https://github.com/BurntSushi/ripgrep) (`rg`) on the `PATH`; see [Install ripgrep](#install-ripgrep). Without it, the agent falls back to `git grep` |
 | Richer diagnostics (optional) | The Dart/Flutter MCP server |
 
@@ -174,11 +178,20 @@ Agent paths may change between versions. Official docs: [Claude Code](https://co
 In the agent:
 
 - "Use `flutter-engineering-guardrails` in **audit** mode to review this project. Do not modify code."
+- "Review this Dart CLI/library: public types, parsing, async shutdown and I/O contracts. It has no Flutter dependency."
 - "**implement** mode: add the new screen following our Provider/ViewModel setup."
 - "**refactor** mode: improve this screen without changing its behavior; write tests first."
 - "**deep-refactor** mode: compare extracting features, adding layers, or leaving it as is. I want the analysis first."
 
-The checks the agent runs are the same ones you can run yourself from the root of any Flutter project:
+Use the affected package's SDK and existing scripts, with dependencies prepared separately. For a pure-Dart package, run from its root:
+
+```bash
+dart format --output=none --set-exit-if-changed lib test
+dart analyze
+dart test
+```
+
+For a Flutter package:
 
 ```bash
 dart format --output=none --set-exit-if-changed lib test
@@ -189,7 +202,7 @@ dart fix --dry-run
 
 `flutter analyze` exits non-zero even when there are only *info* diagnostics (use `--no-fatal-infos` to change that); `dart analyze` does not fail on infos by default. Read the output before concluding there are errors. None of these commands modify source files; the skill never runs `git commit`, `dart fix --apply` or `flutter pub upgrade` on its own.
 
-To get the guardrails' static checks from the analyzer itself, merge [`templates/analysis_options.yaml`](templates/analysis_options.yaml) into your project's `analysis_options.yaml`. It extends `flutter_lints` with `avoid_void_async`, `cancel_subscriptions`, `close_sinks`, `discarded_futures`, `unawaited_futures` and `avoid_dynamic_calls`. On an existing project, measure the current baseline first (see `references/quality-gates-and-ci.md`).
+Pass only existing directories to the formatter and include `bin` for CLI changes. If adopting additional lints, choose the [Dart template](templates/analysis_options_dart.yaml) (`package:lints`) or [Flutter template](templates/analysis_options.yaml) (`flutter_lints`). Check installed versions, preserve existing settings and measure the baseline before merging a requested configuration (see `references/quality-gates-and-ci.md`). Neither template is an automatic dependency installation or migration.
 
 Rules no lint covers (undisposed controllers, controllers or futures created in `build`, `setState(() async`, uncancelled `Timer.periodic`, mixed navigation APIs, file-wide suppressions, large files) are checked by the audit tool. Run it from the root of the Flutter project (`<skill>` is the folder where you installed the skill):
 
@@ -222,6 +235,10 @@ See `references/sources-and-rationale.md` for where the recommendations come fro
 - `flutter_rails_audit`: 33 unit/CLI tests pass (`dart test`), `dart analyze` is clean.
 - On the Flutter framework (`packages/flutter`, 679 files, 527k lines, ~10 s including JIT startup): 0 syntax errors and 3 ownership leads, each worth a look. Two are app-lifetime `ValueNotifier`s in bindings and one is a fallback `ValueNotifier` created in `build()`. A false positive found in this run (a field controller reassigned in `build()` and disposed correctly) was fixed and covered by a test.
 - On the Flutter Gallery app (`dev/integration_tests/flutter_gallery`, 102 files): 10 ownership leads, and all 10 were confirmed by reading the source (controllers whose files never call `dispose`, and a `TextEditingController` built inside `build()`).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for Dart API/async contracts, Flutter lifecycle regressions, ownership counterexamples, version checks and safe detector changes. [CI](.github/workflows/skill-ci.yml) includes the Dart tool and semantic tests plus the Flutter lifecycle example on Linux, macOS and Windows with a pinned SDK. Configured coverage is not evidence of a completed hosted run.
 
 ## License
 

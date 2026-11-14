@@ -4,6 +4,8 @@
 
 A refactor **preserves observable behavior**. If UX, API, persistence, navigation, permissions, response structure or business effect changes, that is a **functional change or migration**, and it must be labeled as such.
 
+For package-dependent cleanup or updates, apply **SKILL.md R0a** first: verify the resolved package and actual SDK versions and consult their corresponding documentation. Do not replace working APIs merely to follow newer examples. For an authorized update, compare current/target documentation and migration notes, separate it from unrelated cleanup, and verify SDK, plugin/platform and observable UI/lifecycle compatibility.
+
 ## The 9-step protocol
 
 1. **Scope:** function/widget/feature and exact contract; identify constraints and off-limits files.

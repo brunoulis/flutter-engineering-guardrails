@@ -1,0 +1,47 @@
+name: Dart and Flutter guardrails validation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+      - name: Resolve locked audit-tool dependencies
+        working-directory: tool
+        run: dart pub get --enforce-lockfile
+      - name: Check audit-tool formatting
+        working-directory: tool
+        run: dart format --output=none --set-exit-if-changed bin lib test
+      - name: Analyze audit tool
+        working-directory: tool
+        run: dart analyze
+      - name: Test audit rules, CLI and Dart semantics
+        working-directory: tool
+        run: dart test
+      - name: Resolve locked example dependencies
+        working-directory: examples/async_lifecycle
+        run: flutter pub get --enforce-lockfile
+      - name: Analyze lifecycle example
+        working-directory: examples/async_lifecycle
+        run: flutter analyze --no-pub
+      - name: Test lifecycle behavior
+        working-directory: examples/async_lifecycle
+        run: flutter test --no-pub

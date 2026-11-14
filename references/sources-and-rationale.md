@@ -1,5 +1,9 @@
 # Origin of the rules and limits of interpretation
 
+## Dart language and non-UI applications
+
+See [Dart sources, discussions and executable evidence](dart-evidence.md) for official language/package/API documentation, three r/dartlang threads and the SDK cancellation design discussion. They inform the Dart-specific routes for language contracts, libraries, CLI/services and async resources. The Flutter discussions below inform the additional UI/state/lifecycle guidance; they are not the sole basis of this skill.
+
 ## The three FlutterDev discussions
 
 1. **AI is reducing my productivity** — https://www.reddit.com/r/FlutterDev/comments/1s9csar/ai_is_reducing_my_productivity/

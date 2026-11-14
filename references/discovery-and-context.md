@@ -1,20 +1,26 @@
-# Repository discovery before modifying Flutter code
+# Repository discovery before modifying Dart or Flutter code
 
 **Goal:** get a concrete snapshot of the existing code; the agent must not replace it with its own preferences.
 
 ## 1. Minimal inspection (read-only, no destructive effects)
 
-From the root of the correct Flutter package:
+First identify the affected package (or workspace member), whether it uses Flutter, and whether the deliverable is a library, CLI, service or app. From that package's root:
 
 ```bash
 git status --short
 git branch --show-current
-find . -maxdepth 3 \( -name pubspec.yaml -o -name analysis_options.yaml \) -print
-flutter --version             # if available
+rg --files -g pubspec.yaml -g pubspec.lock -g pubspec_overrides.yaml -g analysis_options.yaml
+dart --version
+rg --files lib bin test integration_test # pass only existing directories
+```
+
+Inspect `environment`, `workspace`, `resolution`, dependency overrides, resolved package metadata and any library language-version overrides. For a workspace, also inspect the shared resolution at its root. A Dart-only package needs no Flutter tooling. Only for a Flutter package, add:
+
+```bash
+flutter --version
 rg -n 'provider:|flutter_bloc:|riverpod:|get:|go_router:|auto_route:' pubspec.yaml
 rg -n 'class .*ViewModel|extends ChangeNotifier|Consumer<|context.watch|BlocBuilder|ref.watch' lib
 rg -n 'Navigator\.|Get\.(to|back|off)|GoRouter|context\.go\(' lib
-find test integration_test -type f -name '*.dart' 2>/dev/null | wc -l
 ```
 
 - In a monorepo, identify the task's **package** instead of assuming the root is an app.
@@ -24,11 +30,14 @@ find test integration_test -type f -name '*.dart' 2>/dev/null | wc -l
 
 ## 2. Minimal context map
 
-Collect only what is relevant:
+Collect only what is relevant; mark UI/navigation rows N/A for Dart-only work:
 
 | Aspect | Question |
 |---|---|
-| SDK | Dart/Flutter supported by `pubspec.yaml`; capabilities actually available |
+| Package/runtime | Dart library, CLI/service or Flutter app? VM/AOT, browser JS/Wasm, supported OS? |
+| SDK | Actual Dart SDK, package/library language version; Flutter SDK only where relevant |
+| API and I/O | Public exports/modifiers, input validation, stdout/stderr/exit codes, file/process/network boundaries? |
+| Async/resources | Ordering, timeout versus cancellation, owned tasks, streams/sinks and awaited shutdown? |
 | State | Local, shared within a feature, or app-wide? Who creates and destroys it? |
 | UI | Theme/Design System, reusable widget, text, localization, responsive? |
 | Network and data | Where is JSON serialized/validated? HTTP errors, auth, cache? |

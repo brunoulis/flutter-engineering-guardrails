@@ -1,5 +1,23 @@
 # Dart quality: precision, types and bounded complexity
 
+Applies to Dart libraries, CLI tools and services as well as Flutter. Use [Effective Dart](https://dart.dev/effective-dart/design) and the project's actual SDK/language version. Companion guides: [async and I/O](dart-async-and-io.md), [sources and executable counterexamples](dart-evidence.md).
+
+## Language and public API contracts
+
+- Prefer `Object?` for genuinely untrusted values when operations must follow validation; reserve `dynamic` for boundaries that need dynamic dispatch. A cast describes an assumption, not a parser. Validate external shape, element types and domain constraints; do not coerce malformed values into plausible defaults silently.
+- Records and patterns can simplify local data/shape handling. A matching map pattern can allow extra keys: explicitly decide whether unknown fields are permitted. Keep named domain types where invariants, documentation or API evolution justify them.
+- A `final` variable cannot be rebound; the referenced object can still change. An unmodifiable list snapshot protects its own structure, not mutable nested elements. An `UnmodifiableListView` follows changes to the backing collection. Choose live view, shallow copy or immutable domain data according to the contract; do not claim deep immutability from `final` or a const constructor alone.
+- Equality and `hashCode` must agree. Avoid mutating equality/hash-relevant state while an object is a map key or set member. Test aliasing and lookup behavior when changing value semantics.
+- `_private` names are library-private, not class-private. An imported file is a separate library; a `part` belongs to the same library. Moving a helper can change accessibility. Do not expose a formerly private API merely to make extraction compile or introduce `part` as an automatic workaround.
+- Choose `abstract`, `interface`, `base`, `final` and `sealed` from intended downstream construction/extension/implementation rights. Adding `final` or closing a hierarchy can break consumers and mocks; this is an API compatibility decision. Preserve exhaustive-switch behavior and test consumers when changing exported variants.
+- An installed recent SDK does not automatically permit recent syntax in every package. Check the `environment.sdk` lower bound, language version and any `// @dart=` override before introducing records, patterns, class modifiers or newer syntax. Do not raise constraints simply to use a preferred style.
+
+## Packages and non-UI applications
+
+Preserve deliberate exports and entry points. `lib/src` is an implementation convention, not language-enforced privacy; avoid importing another package's internals. Do not create a class, interface, service or package for each function. Keep executable argument/I/O handling near `bin/`, reusable contracts in the existing library structure and deterministic logic independently testable.
+
+For published libraries, a test with one lockfile does not prove the whole supported SDK/dependency range. Test lower-bound/consumer compatibility when relevant to the change, using an isolated resolution rather than downgrading the user's checkout. In a pub workspace inspect the shared lockfile and package configuration, overrides and affected member packages. Keep Flutter dependencies out of reusable pure-Dart code unless the API really requires them.
+
 ## Strong rules
 
 - Use clear public types, `final` when there is no reassignment, invariants and null-safety; reduce `dynamic` at boundaries with external APIs.
@@ -21,10 +39,10 @@
 
 ## Typed boundary example
 
-Before (the UI depends on unvalidated server keys):
+Before (a caller assumes an external value has the right shape):
 
 ```dart
-Text(response['client']['name'] ?? '')
+final name = response['client']['name'] as String;
 ```
 
 After (illustrative; adapt to the real contract):
@@ -44,7 +62,7 @@ class Client {
 }
 ```
 
-Parsing should run when the data is fetched, with the error handled in the owning layer, not in every `build()`.
+This factory checks `name` after a Map boundary has already been established; callers must still validate the decoded root. Decide separately whether blank names and unknown fields are valid. Parse at the input boundary and handle failures in the owning layer, not repeatedly in widget builds or downstream business functions.
 
 ## AI-generated anti-patterns
 

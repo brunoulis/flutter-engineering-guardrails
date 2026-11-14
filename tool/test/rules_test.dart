@@ -230,9 +230,11 @@ class W extends StatelessWidget {
       );
     });
 
-    test('flags replacement even when only the last field value is disposed', () {
-      expect(
-        _rules('''
+    test(
+      'flags replacement even when only the last field value is disposed',
+      () {
+        expect(
+          _rules('''
 class S extends State<W> {
   TextEditingController? controller;
   Widget build(BuildContext context) {
@@ -242,9 +244,10 @@ class S extends State<W> {
   void dispose() { controller?.dispose(); super.dispose(); }
 }
 '''),
-        contains('controller-created-in-build'),
-      );
-    });
+          contains('controller-created-in-build'),
+        );
+      },
+    );
 
     test('flags a controller constructed inside build', () {
       expect(
@@ -260,11 +263,9 @@ class W extends StatelessWidget {
       );
     });
 
-    test(
-      'accepts direct release immediately before field replacement',
-      () {
-        expect(
-          _rules('''
+    test('accepts direct release immediately before field replacement', () {
+      expect(
+        _rules('''
 class S extends State<W> with TickerProviderStateMixin {
   AnimationController? controller;
   Widget build(BuildContext context) {
@@ -278,10 +279,9 @@ class S extends State<W> with TickerProviderStateMixin {
   void dispose() { controller?.dispose(); super.dispose(); }
 }
 '''),
-          isNot(contains('controller-created-in-build')),
-        );
-      },
-    );
+        isNot(contains('controller-created-in-build')),
+      );
+    });
 
     test('still flags a fallback instance created inside build', () {
       expect(

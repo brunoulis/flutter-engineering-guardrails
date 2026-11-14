@@ -1,6 +1,6 @@
 # Risk-based testing and validation strategy
 
-Official guide: https://docs.flutter.dev/testing/overview. Flutter distinguishes unit, widget and integration tests; combine them according to cost and criticality. Never claim coverage that was not measured.
+For pure Dart, use the package's Dart analyzer and unit/contract tests; Flutter is not required. For Flutter, the [official guide](https://docs.flutter.dev/testing/overview) distinguishes unit, widget and integration tests. Combine checks according to cost and criticality. Never claim coverage that was not measured.
 
 ## Progressive gate
 
@@ -8,6 +8,10 @@ Official guide: https://docs.flutter.dev/testing/overview. Flutter distinguishes
 |---|---|---|
 | Small text/style | `dart format`/partial analyzer + visual inspection | Responsive/a11y or fragile layout |
 | Pure function | Unit tests + analyze | It has business decisions |
+| Dart public API / library extraction | Consumer compile/analyze checks, exports, subtype rights and regression tests | Minimum language version or dependency range changes |
+| Collections / parser | Malformed input, aliases, nested mutation and snapshot/view contracts | Equality/hash keys or external schema changes |
+| Dart async / streams | Controlled ordering, errors, timeout effects, concurrent work and awaited cleanup | Buffering, cancellation or shutdown changes |
+| CLI / service I/O | Input/output, stderr/exit code, resource cleanup and controlled integration | Processes, signals, sockets or OS-specific behavior changes |
 | Form/ViewModel | Unit tests for state and errors + widget test for interaction | It validates, navigates, persists or uses several requests |
 | Controller/stream/listener | Lifecycle test: create, use, unmount, return | There are timers, cancellations, race conditions |
 | Routing/deep links | Widget/integration test for entry/back/params | Web/history/auth guard |
@@ -21,14 +25,21 @@ Official guide: https://docs.flutter.dev/testing/overview. Flutter distinguishes
 ```bash
 # Read-only / no source mutation
 dart format --output=none --set-exit-if-changed lib test
-flutter analyze
-flutter test test/features/orders/order_view_model_test.dart
-flutter test # if the scope justifies it and the tests exist
+# Pure-Dart package:
+dart analyze
+dart test # or a relevant existing test file
+
+# Flutter package:
+flutter analyze --no-pub
+flutter test --no-pub test/features/orders/order_view_model_test.dart
+flutter test --no-pub # if the scope justifies it and the tests exist
 
 dart fix --dry-run # see proposed automatic changes; does NOT apply them
 ```
 
 When passing subdirectories to `dart format`, pass only those that exist. `flutter test` and `flutter analyze` require a suitable SDK/dependencies; report if they are unavailable. The tools can create temporary build artifacts even if they do not change sources.
+
+Include `bin` when CLI entry points are touched. Dependency preparation is a separate explicit step: Dart commands may resolve packages if missing; verify state before running them during a read-only audit. Use the project-selected SDK and do not install Flutter for Dart-only tests. A VM test does not verify browser JS/Wasm, platform signals or native interop. [Dart API examples](dart-evidence.md) provide controlled semantic checks without new dependencies.
 
 ## Characterization tests for refactors
 

@@ -1,5 +1,9 @@
 # Ready-to-use prompts for Claude Code, Codex or Hermes Agent
 
+## Dart library, CLI or service
+
+Use `flutter-engineering-guardrails` for this Dart-only package in the requested audit/implement/refactor mode. Identify the actual SDK/language version, workspace resolution, public API and runtime targets. Review input validation, collection ownership, subtype/export compatibility, async ordering, errors, timeout versus cancellation and resource shutdown. For a CLI, preserve stdout/stderr and exit contracts. Read the Dart language and async/I/O references; do not add Flutter or UI/state abstractions. Consult version-matched official docs before library-dependent changes and preserve dependencies unless an update is justified by the task. Verify with appropriate Dart analyzer and behavioral tests, reporting untested platforms honestly.
+
 ## 1 — Audit of a legacy Flutter project
 
 Use the `flutter-engineering-guardrails` skill in `audit` mode. Inspect the real repository and detect its architecture, Flutter/Dart version, state management, router, tests and conventions. Do NOT modify files or apply auto-fixes. Audit lifecycle/async, controller ownership, business logic inside the UI, routes, untyped JSON, silent errors, duplication and performance at critical points. Separate **confirmed/probable/heuristic** findings, always with file:line, failure case, minimal fix and test. Prioritize P0–P3. Deliver three incremental slices of maximum value and what NOT to touch yet. Avoid proposing a new framework without evidence.

@@ -13,6 +13,16 @@
 
 Example commands **to adapt**:
 
+For a pure-Dart package:
+
+```bash
+dart format --output=none --set-exit-if-changed lib test
+dart analyze
+dart test
+```
+
+Include existing `bin` directories when relevant. Prepare dependencies explicitly under the repository's lockfile policy before claiming the audit is read-only. Use Flutter commands only for Flutter packages:
+
 ```bash
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze --no-pub
@@ -38,6 +48,8 @@ Exit codes differ: `dart analyze` fails on errors and warnings but not on *info*
 - Do not publish "0 warnings" metrics if the corresponding set was not measured.
 
 ## Recommended lints
+
+For pure Dart, use the existing compatible `package:lints` configuration; [`analysis_options_dart.yaml`](../templates/analysis_options_dart.yaml) is an optional starting point. Do not bring in `flutter_lints` or suppress legitimate CLI output just to reuse a UI template. Verify each proposed lint against the installed SDK and baseline.
 
 [`../templates/analysis_options.yaml`](../templates/analysis_options.yaml) extends `flutter_lints` with lints that map to the guardrails: `avoid_void_async`, `cancel_subscriptions`, `close_sinks`, `discarded_futures`, `unawaited_futures` and `avoid_dynamic_calls` (`flutter_lints` already provides `use_build_context_synchronously`, `avoid_print` and `empty_catches`). The strict typing modes are left as opt-in comments. Adopt it through the baseline process below, never as a silent drive-by change.
 
