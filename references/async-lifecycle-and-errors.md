@@ -26,55 +26,19 @@ Important: do **not** `dispose()` a controller received from outside if it belon
 
 `context.mounted` protects a context after the `await`, but it **does not prevent stale responses** nor cancel a request; these are different problems.
 
-## Illustrative example: ViewModel with stale results
+## Executable example: ViewModel with stale results
 
-```dart
-class SearchViewModel extends ChangeNotifier {
-  SearchViewModel(this._repository);
-  final SearchRepository _repository;
+[SearchViewModel](../examples/async_lifecycle/lib/search.dart) publishes only the current request's result and stops publishing after disposal. It retains previous results during loading/error and exposes an immutable list snapshot. The repository and item are minimal example interfaces; adapt the UX and error mapping to the application. Callers must stop invoking the notifier once disposed.
 
-  int _generation = 0;
-  bool _disposed = false;
-  bool _isLoading = false;
-  bool get isLoading => _isLoading;
-  List<SearchItem> _items = const [];
-  List<SearchItem> get items => _items;
-  Object? _lastError;
-  Object? get lastError => _lastError;
+[Unit tests](../examples/async_lifecycle/test/search_test.dart) use controlled Futures for stale success/error, loading while a newer request is pending, completion after disposal, snapshots and recovery. Run from `examples/async_lifecycle`:
 
-  Future<void> search(String query) async {
-    final generation = ++_generation;
-    _isLoading = true;
-    _lastError = null;
-    notifyListeners();
-
-    try {
-      final result = await _repository.search(query);
-      if (!_isCurrent(generation)) return;
-      _items = List<SearchItem>.unmodifiable(result);
-    } catch (error) {
-      if (!_isCurrent(generation)) return;
-      _lastError = error; // Adapt: map to a UI-safe error.
-    } finally {
-      if (_isCurrent(generation)) {
-        _isLoading = false;
-        notifyListeners();
-      }
-    }
-  }
-
-  bool _isCurrent(int generation) => !_disposed && generation == _generation;
-
-  @override
-  void dispose() {
-    _disposed = true;
-    _generation++;
-    super.dispose();
-  }
-}
+```bash
+flutter pub get
+flutter analyze --no-pub
+flutter test --no-pub
 ```
 
-This is **one possible pattern**, not an obligation. In this example previous results are kept during loading/error; decide this explicitly according to UX. The state/request library itself may handle cancellation and ordering. The `SearchRepository` and `SearchItem` types are example interfaces, not real libraries.
+This is one possible pattern. When `FutureBuilder` or the existing state library already owns and discards obsolete callbacks, preserve that mechanism. The [widget tests](../examples/async_lifecycle/test/future_builder_test.dart) exercise `FutureBuilder` directly without adding request IDs. These guards prevent late publication; they do not cancel remote work or protect side effects outside the guarded owner. See [pinned upstream evidence](code-evidence.md) for the scope of those guarantees.
 
 ## Meaningful error handling
 

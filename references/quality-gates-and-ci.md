@@ -21,6 +21,16 @@ flutter test --no-pub
 
 The `--no-pub` option assumes dependencies have already been fetched; the pipeline can add a separate `flutter pub get` stage with cache/lockfile under its own policies.
 
+When maintaining this skill's [async example](../examples/async_lifecycle/pubspec.yaml), a CI job with Flutter installed can run the following from the skill root. It covers controlled races, disposal and `FutureBuilder` ownership; it is not a check to impose on consuming apps.
+
+```bash
+cd examples/async_lifecycle
+flutter pub get
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze --no-pub
+flutter test --no-pub
+```
+
 Exit codes differ: `dart analyze` fails on errors and warnings but not on *info* diagnostics by default (`--fatal-infos` to fail on them); `flutter analyze` also fails on *info* unless `--no-fatal-infos` is passed. Pick the behavior deliberately and document it in CI.
 
 - A PR should be blocked by formatting failures, the configured strict analysis and relevant tests when the environment allows it.

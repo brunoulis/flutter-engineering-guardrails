@@ -215,6 +215,37 @@ class C extends GetxController {
   });
 
   group('controller-created-in-build', () {
+    test('local lazy initialization does not cache across builds', () {
+      expect(
+        _rules('''
+class W extends StatelessWidget {
+  Widget build(BuildContext context) {
+    TextEditingController? controller;
+    controller ??= TextEditingController();
+    return TextField(controller: controller);
+  }
+}
+'''),
+        contains('controller-created-in-build'),
+      );
+    });
+
+    test('flags replacement even when only the last field value is disposed', () {
+      expect(
+        _rules('''
+class S extends State<W> {
+  TextEditingController? controller;
+  Widget build(BuildContext context) {
+    controller = TextEditingController();
+    return TextField(controller: controller);
+  }
+  void dispose() { controller?.dispose(); super.dispose(); }
+}
+'''),
+        contains('controller-created-in-build'),
+      );
+    });
+
     test('flags a controller constructed inside build', () {
       expect(
         _rules('''
@@ -230,7 +261,7 @@ class W extends StatelessWidget {
     });
 
     test(
-      'ignores a field (re)assigned inside build; ownership rule covers it',
+      'accepts direct release immediately before field replacement',
       () {
         expect(
           _rules('''

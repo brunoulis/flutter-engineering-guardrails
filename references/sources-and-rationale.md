@@ -17,6 +17,8 @@
 
 ## Priority technical material
 
+For concrete code and tests, see [async safeguards and counterexamples](code-evidence.md). Those pinned examples distinguish inspected behavior, local checks and review inferences.
+
 - Agent Skills standard (frontmatter and structure): https://agentskills.io/specification
 - Official Flutter Agent Plugins: https://github.com/flutter/agent-plugins
 - Official Dart Skills: https://github.com/dart-lang/skills

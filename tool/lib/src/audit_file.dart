@@ -178,8 +178,8 @@ final class _Collector extends RecursiveAstVisitor<void> {
         rule: 'undisposed-controller',
         priority: 'P2',
         title:
-            'Field `$name` (${created.type}) is created here but never '
-            'disposed by this class',
+            'No disposal found for field `$name` (${created.type}) '
+            'created here',
         check:
             'Confirm the real owner: if this class created it, dispose it '
             'in dispose()/close(); if ownership is handed elsewhere, say where. '
@@ -263,10 +263,11 @@ final class _Collector extends RecursiveAstVisitor<void> {
           priority: 'P2',
           title:
               'The `$label:` of a ${label == 'future' ? 'FutureBuilder' : 'StreamBuilder'} '
-              'is created inside build()',
+              'contains a call inside build()',
           check:
-              'Every rebuild restarts the work. Create it once (initState, '
-              'a late final field or the ViewModel) and pass the stored value.',
+              'Check whether this call returns a new future/stream or an '
+              'existing cached value. If it starts new work per rebuild, '
+              'store it with the owner and refresh when its inputs change.',
         );
       }
     }
@@ -281,12 +282,14 @@ final class _Collector extends RecursiveAstVisitor<void> {
       parent = parent!.parent;
     }
     if (parent is AssignmentExpression) {
-      if (parent.operator.type == TokenType.QUESTION_QUESTION_EQ) {
-        return; // lazily cached
-      }
       final name = refName(parent.leftHandSide);
-      if (name != null && _fieldsOfEnclosingType(node).contains(name)) {
-        return; // stored in a field: undisposed-controller checks disposal
+      if (parent.operator.type == TokenType.QUESTION_QUESTION_EQ &&
+          name != null &&
+          _fieldsOfEnclosingType(node).contains(name)) {
+        return; // a field can cache across builds; a local variable cannot
+      }
+      if (name != null && _disposedBefore(parent, name)) {
+        return; // direct replacement after release in the same block
       }
     }
     _add(
@@ -295,8 +298,9 @@ final class _Collector extends RecursiveAstVisitor<void> {
       priority: 'P2',
       title: '$type is constructed inside build()',
       check:
-          'A new instance per rebuild loses state and is never disposed. '
-          'Own it in a State/ViewModel and dispose it there.',
+          'Check repeated builds: replacing a field can lose the previous '
+          'instance even if dispose() releases the last value. Reuse it, or '
+          'verify replacement releases the old instance and preserves state.',
     );
   }
 
@@ -330,7 +334,7 @@ final class _Collector extends RecursiveAstVisitor<void> {
         node,
         rule: 'uncancelled-periodic-timer',
         priority: 'P2',
-        title: 'Timer.periodic stored in `$holder` is never cancelled',
+        title: 'No cancellation found for Timer.periodic stored in `$holder`',
         check: 'Cancel it in dispose()/close() or when its work is done.',
       );
       return;
@@ -351,9 +355,7 @@ final class _Collector extends RecursiveAstVisitor<void> {
       node,
       rule: 'uncancelled-periodic-timer',
       priority: 'P2',
-      title:
-          'Timer.periodic result is discarded and the timer never cancels '
-          'itself',
+      title: 'Timer.periodic result is discarded; no self-cancellation found',
       check:
           'Keep the Timer and cancel it with its owner, or cancel it from '
           'the callback when done.',
@@ -368,8 +370,21 @@ final class _Collector extends RecursiveAstVisitor<void> {
         node.thisOrAncestorOfType<ClassDeclaration>() ??
         node.thisOrAncestorOfType<MixinDeclaration>();
     if (owner == null) return const {};
-    final scan = _OwnershipScan()..run(owner);
-    return scan.fields;
+    return (_OwnershipScan()..run(owner)).fields;
+  }
+
+  bool _disposedBefore(AstNode node, String name) {
+    final statement = node.thisOrAncestorOfType<Statement>();
+    final block = statement?.parent;
+    if (block is! Block) return false;
+    final index = block.statements.indexOf(statement!);
+    if (index < 1) return false;
+    final previous = block.statements[index - 1];
+    if (previous is! ExpressionStatement) return false;
+    final expression = previous.expression;
+    return expression is MethodInvocation &&
+        expression.methodName.name == 'dispose' &&
+        refName(expression.realTarget) == name;
   }
 }
 

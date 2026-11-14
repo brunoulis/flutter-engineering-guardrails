@@ -23,10 +23,9 @@
 - Web/desktop/responsive:
 - Privacy, errors and accessibility:
 
-## Initial backlog: at most three slices
-1. [Goal → scope → test → rollback]
-2. [Goal → scope → test → rollback]
-3. [Goal → scope → test → rollback]
+## Initial actions: 0–3 justified by findings
+List only supported work: [Finding → goal → scope → test → rollback].
+If none is justified, state that no changes are recommended.
 
 ## Not for now
 - [Abstractions, migrations or cosmetic fixes without enough value]

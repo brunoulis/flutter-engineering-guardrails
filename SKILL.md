@@ -65,6 +65,7 @@ When ambiguous, use `audit` for diagnosis, `implement` for requested features, a
 | Jank, memory or Flutter web/desktop | `performance-and-web.md`, `async-lifecycle-and-errors.md` |
 | Auth, data handling, accessibility | `security-and-accessibility.md` |
 | Tooling setup, CI gates, or claims about sources | `quality-gates-and-ci.md`, `sources-and-rationale.md` |
+| Comparing async safeguards with upstream code/tests | [Code evidence and counterexamples](references/code-evidence.md) |
 
 ## Audit and tool usage
 
@@ -91,7 +92,7 @@ Use the Dart/Flutter SDK tools directly, plus the skill's read-only Dart audit t
 
 ## Output contracts
 
-- `audit`: inventory, confirmed/probable/heuristic findings with `file:line`, severity, consequences, minimal correction, risk and validation plan; a prioritized 3-slice backlog. Use [audit template](templates/audit-report.md).
+- `audit`: inventory, confirmed/probable/heuristic findings with `file:line`, severity, consequences, minimal correction, risk and validation plan; 0–3 initial actions justified by findings. A clean audit may recommend no changes. Use [audit template](templates/audit-report.md).
 - `implement`: what changed, why design fits project, behavior/edge cases, tests actually run, risks. Use compact write-up for trivial tasks.
 - `refactor`: characterization before/after, preserved contracts, exact slice, test evidence, rollback and what was intentionally **not** refactored. Use [refactor template](templates/refactor-plan.md).
 - `deep-refactor`: problem evidence, 2+ viable options including **do nothing/incremental**, migration milestones, compatibility gates, cost/risk, fallback; implement only requested slices.

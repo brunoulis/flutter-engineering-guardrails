@@ -77,7 +77,7 @@ Change risk: low / affects only that flow.
    |---|---|---|---|
    | `setstate-async-callback` | P1 | `setState(() async { ... })` | synchronous callbacks |
    | `undisposed-controller` | P2 | a field the class itself fills with a disposable (`TextEditingController`, `ScrollController`, `PageController`, `AnimationController`, `TabController`, `FocusNode`, `ValueNotifier`, …), in its declaration or by assignment, with no `.dispose()` on it and no reference to it inside `dispose()`/`close()`/`onClose()` | controllers injected through the constructor; disposal via `?.`, cascades or a list iterated in `dispose()` |
-   | `controller-created-in-build` | P2 | a disposable constructed inside `build()`, e.g. `controller: TextEditingController()` or a `?? ValueNotifier(...)` fallback | `x ??= ...`; assignment to a field (the rule above checks its disposal) |
+   | `controller-created-in-build` | P2 | a disposable constructed inside `build()`, including replacement of a field whose final value is disposed later | lazy `field ??= ...` initialization; assignment immediately preceded by a direct `.dispose()` of that reference in the same block; these syntactic exceptions still need ownership/state review |
    | `future-created-in-build` | P2 | `FutureBuilder(future: load())` / `StreamBuilder(stream: watch())` inside `build()` | a stored field, `_f ??= load()`, builders outside `build()` |
    | `uncancelled-periodic-timer` | P2 | `Timer.periodic` stored in a variable/field never cancelled, or discarded without cancelling itself | `cancel()` on the holder, references in `dispose()`, `timer.cancel()` in the callback, a timer returned or passed on |
    | `mixed-navigation-styles` | P2 | more than one of `Navigator.*`, `Get.to/off/back…`, go_router (`context.go/push/pop…`, `GoRouter.of`) across the scope | a single API |
@@ -114,6 +114,6 @@ Change risk: low / affects only that flow.
 
 ### Prioritization and plan
 
-Classify each item by real impact, cost, regression risk and existing coverage. Offer **at most three initial slices**, leaving a backlog with dependencies for the rest. Do not use "rewrite everything" as an automatic diagnosis.
+Classify each item by real impact, cost, regression risk and existing coverage. Offer **0–3 justified initial actions**, leaving a backlog with dependencies only when further findings warrant it. If there are no supported changes, say so; do not invent work to fill the plan. Do not use "rewrite everything" as an automatic diagnosis.
 
 Use the template [`../templates/audit-report.md`](../templates/audit-report.md).
