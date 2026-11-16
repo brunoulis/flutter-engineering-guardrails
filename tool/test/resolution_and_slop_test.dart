@@ -141,6 +141,17 @@ $children
       expect((await dim('duplication')).items, hasLength(2));
     });
 
+    test('duplication: delegation to different calls is not a clone', () async {
+      String body(String callee, String label) =>
+          'Future<int> f() async {\n  return guard(() async {\n'
+          '    final r = await ds.$callee(a, $label: b, c: c, d: d, e: e, '
+          'g: g, h: h, i: i, limit: limit, offset: offset);\n'
+          '    return Result.success(r);\n  }, serverMessage: clean);\n}\n';
+      await put('lib/a.dart', body('getA', 'email'));
+      await put('lib/b.dart', body('getB', 'phone'));
+      expect((await dim('duplication')).items, isEmpty);
+    });
+
     test('complexity above the limit is reported', () async {
       final ifs = List.generate(
         complexityLimit + 1,

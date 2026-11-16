@@ -160,7 +160,7 @@ SlopReport computeSlop(String root, List<String> files) {
       duplicates,
       note:
           'Bodies of >= $_minCloneTokens tokens equal after renaming '
-          'identifiers (literals kept).',
+          'variables (literals, called functions and named arguments kept).',
     ),
     SlopDimension(
       'complexity',
@@ -266,7 +266,12 @@ String? _normalized(FunctionBody body) {
   final out = <String>[];
   final end = body.endToken;
   for (Token? t = body.beginToken; t != null; t = t.next) {
-    out.add(t.type == TokenType.IDENTIFIER ? 'I' : t.lexeme);
+    // Keep call targets and named-argument labels: two bodies that call
+    // different functions with different parameters are 1:1 delegation to
+    // different things (e.g. repository -> datasource), not clones.
+    final next = t.next?.type;
+    final keep = next == TokenType.OPEN_PAREN || next == TokenType.COLON;
+    out.add(t.type == TokenType.IDENTIFIER && !keep ? 'I' : t.lexeme);
     if (t == end || t.isEof) break;
   }
   return out.length >= _minCloneTokens ? out.join(' ') : null;
