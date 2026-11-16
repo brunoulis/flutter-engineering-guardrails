@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Flutter Engineering Guardrails logo: a pixel-art miner in a mine cart with the Flutter logo" width="480">
+  <img src="assets/logo.gif" alt="Flutter Engineering Guardrails logo: a pixel-art miner in a mine cart with the Flutter logo" width="480">
 </p>
 
 # Dart and Flutter Engineering Guardrails
