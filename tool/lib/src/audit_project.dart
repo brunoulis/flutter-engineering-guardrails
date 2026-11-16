@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 
 import 'audit_file.dart';
 import 'finding.dart';
+import 'project_rules.dart';
 
 /// Directory names skipped anywhere in the tree.
 const _excludedDirs = {
@@ -56,6 +57,7 @@ ProjectReport auditProject(
   String root,
   List<String> scopeDirs, {
   int largeFileLines = 700,
+  ProjectRules? rules,
 }) {
   final files = <String>{};
   for (final scope in scopeDirs) {
@@ -85,6 +87,7 @@ ProjectReport auditProject(
       final audit = auditSource(rel, content, largeFileLines: largeFileLines);
       scannedLines += audit.lines;
       findings.addAll(audit.findings);
+      if (rules != null) findings.addAll(rules.audit(rel, content));
       if (audit.parseErrors.isNotEmpty) parseErrors[rel] = audit.parseErrors;
       for (final MapEntry(key: style, value: line)
           in audit.navigationStyles.entries) {

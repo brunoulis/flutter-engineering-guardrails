@@ -407,7 +407,7 @@ const s = 'ignore_for_file: not a comment';
     test('records navigation styles used by the file', () {
       final audit = auditSource('lib/a.dart', '''
 void a(BuildContext context) {
-  Navigator.of(context).pop();
+  Navigator.of(context).push(route);
   Get.to(const Page());
   context.go('/home');
   router.go('/x');
@@ -431,6 +431,29 @@ class S extends State<W> {
         audit.findings.map((f) => f.rule),
         contains('setstate-async-callback'),
       );
+    });
+  });
+
+  group('false positives seen in TeikaDesk', () {
+    test('ignores a notifier created in a provider create callback', () {
+      expect(
+        _rules('''
+class W extends StatelessWidget {
+  Widget build(BuildContext context) => ChangeNotifierProvider(
+        create: (_) => ValueNotifier(true),
+        child: const SizedBox(),
+      );
+}
+'''),
+        isNot(contains('controller-created-in-build')),
+      );
+    });
+
+    test('Navigator.pop plus context.go is not mixed navigation', () {
+      final a = auditSource('lib/a.dart', '''
+void f(BuildContext context) { Navigator.pop(context); context.go('/x'); }
+''');
+      expect(a.navigationStyles.keys, ['go_router']);
     });
   });
 }

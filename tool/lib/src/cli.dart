@@ -4,6 +4,7 @@ import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
 import 'audit_project.dart';
+import 'project_rules.dart';
 import 'report.dart';
 
 const _exitOk = 0;
@@ -101,7 +102,22 @@ Future<int> runCli(
     scopes.add(resolved);
   }
 
-  final report = auditProject(root, scopes, largeFileLines: largeFileLines);
+  ProjectRules? rules;
+  final config = File(p.join(root, '.flutter-rails.yaml'));
+  if (config.existsSync()) {
+    try {
+      rules = ProjectRules.parse(config.readAsStringSync());
+    } on FormatException catch (e) {
+      return usageError(e.message);
+    }
+  }
+
+  final report = auditProject(
+    root,
+    scopes,
+    largeFileLines: largeFileLines,
+    rules: rules,
+  );
   final text = args.option('format') == 'json'
       ? renderJson(report)
       : renderText(report);

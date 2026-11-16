@@ -217,7 +217,7 @@ To keep these rules active in every review, copy the block in `templates/always-
 
 ## Project profile
 
-Copy `templates/project-profile.yaml` to your project root as `.flutter-rails.yaml` and adapt its values. It is a **contract readable by humans and agents**: no tool reads or enforces it automatically. It takes precedence over this skill's generic recommendations, except for security/correctness issues.
+Copy `templates/project-profile.yaml` to your project root as `.flutter-rails.yaml` and adapt its values. It is a **contract readable by humans and agents**; only its optional `rules:` section (viewmodel base class, forbidden imports, forbidden types) is also checked by the audit tool, as heuristic leads (rule ids `project-*`). It takes precedence over this skill's generic recommendations, except for security/correctness issues.
 
 The example profile describes an existing Flutter Web app with Provider/ViewModel and a legacy responsive breakpoint, for illustration. Replace those values with your project's real ones.
 

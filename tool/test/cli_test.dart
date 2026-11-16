@@ -14,7 +14,7 @@ void main() {
     await File(p.join(root.path, 'lib', 'a.dart')).writeAsString('''
 class S extends State<W> {
   final c = TextEditingController();
-  void f() { Navigator.of(context).pop(); }
+  void f() { Navigator.of(context).push(route); }
 }
 ''');
     await File(p.join(root.path, 'lib', 'b.dart')).writeAsString('''

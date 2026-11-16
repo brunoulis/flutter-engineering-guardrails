@@ -1,5 +1,6 @@
 # Example to copy to <your-project>/.flutter-rails.yaml
-# Declarative contract read by the agent; no script processes it automatically.
+# Declarative contract read by the agent. Only the optional `rules:` section at
+# the end is also enforced by tool/bin/flutter_rails_audit.dart (as heuristic leads).
 # Illustrative Flutter values: replace with the actual repository.
 # The historical filename also supports Dart-only packages. For those, omit ui,
 # routing and state-framework settings; do not add Flutter to match this example.
@@ -41,3 +42,16 @@ verification:
   tests: "targeted_then_expand_by_risk"
   browser_integration: "run_when_available"
   report_unverified_as_unverified: true
+# Optional, checked by the audit tool (syntax only, name-based). Adapt or delete.
+rules:
+  viewmodel-base-class:        # classes named *ViewModel must extend BaseViewModel
+    paths: [lib]
+    class-suffix: ViewModel
+    must-extend: BaseViewModel
+    exclude: [BaseViewModel]   # the base classes themselves
+  forbidden-imports:
+    - paths: [lib/**/presentation]
+      imports: ["package:http", "package:dio"]
+  forbidden-types:             # no BuildContext inside viewmodels
+    - class-suffix: ViewModel
+      types: [BuildContext]

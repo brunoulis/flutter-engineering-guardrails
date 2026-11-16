@@ -226,7 +226,20 @@ final class _Collector extends RecursiveAstVisitor<void> {
         'context' when _goRouterNavigation.contains(name) => 'go_router',
         _ => null,
       };
-      if (style != null) {
+      // Navigator.pop/maybePop only close dialogs/routes; they do not make a
+      // second routing style, so only push-like calls count.
+      const pops = {'pop', 'maybePop', 'canPop', 'popUntil'};
+      final outer = node.parent;
+      final popOnly =
+          style == 'navigator' &&
+          (pops.contains(name) ||
+              // Navigator.of(context) alone (stored, passed around) is not a
+              // routing call; only a push-like call on it is.
+              (name == 'of' || name == 'maybeOf') &&
+                  !(outer is MethodInvocation &&
+                      outer.target == node &&
+                      !pops.contains(outer.methodName.name)));
+      if (style != null && !popOnly) {
         navigation.putIfAbsent(style, () => _line(node.offset));
       }
     }
@@ -277,6 +290,10 @@ final class _Collector extends RecursiveAstVisitor<void> {
     final type = createdType(node);
     if (type == null || !disposableTypes.contains(type)) return;
     if (!_insideBuild(node)) return;
+    if (_insideProviderCreate(node))
+    if (_insideProviderCreate(node)) {
+      return; // the provider owns and disposes it
+    }
     AstNode? parent = node.parent;
     while (parent is CascadeExpression || parent is ParenthesizedExpression) {
       parent = parent!.parent;
@@ -360,6 +377,18 @@ final class _Collector extends RecursiveAstVisitor<void> {
           'Keep the Timer and cancel it with its owner, or cancel it from '
           'the callback when done.',
     );
+  }
+
+  /// True when [node] sits inside a `create: (...) => ...` callback.
+  bool _insideProviderCreate(AstNode node) {
+    for (
+      AstNode? n = node.parent;
+      n != null && n is! MethodDeclaration;
+      n = n.parent
+    ) {
+      if (n is NamedArgument && n.name.lexeme == 'create') return true;
+    }
+    return false;
   }
 
   bool _insideBuild(AstNode node) =>
