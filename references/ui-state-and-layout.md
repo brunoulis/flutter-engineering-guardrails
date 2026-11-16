@@ -13,6 +13,8 @@ The choice depends on **who owns and modifies the state**, not on dogma:
 
 Do not move a form that works with Provider/ViewModel to a `StatefulWidget` just to remove `notifyListeners`, and do not force every widget to be stateless when it needs its own resources.
 
+**Project override:** if the project's AGENTS.md/CLAUDE.md sets a widget/state rule (e.g. `StatelessWidget` + ViewModel owning form/scroll controllers), it takes precedence over the table above.
+
 ## Reactive state and rebuilds
 
 - Choose a single source of truth. Avoid duplicating `controller.text`, `selectedValue` and `viewModel.selectedValue` without defined synchronization.
