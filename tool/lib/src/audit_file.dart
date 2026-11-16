@@ -290,7 +290,6 @@ final class _Collector extends RecursiveAstVisitor<void> {
     final type = createdType(node);
     if (type == null || !disposableTypes.contains(type)) return;
     if (!_insideBuild(node)) return;
-    if (_insideProviderCreate(node))
     if (_insideProviderCreate(node)) {
       return; // the provider owns and disposes it
     }
