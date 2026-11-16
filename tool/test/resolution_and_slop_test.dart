@@ -27,7 +27,10 @@ void main() {
 
   group('cross-file ownership', () {
     setUp(() async {
-      await put('lib/ctl.dart', 'class AppScroll extends ScrollController {}\n');
+      await put(
+        'lib/ctl.dart',
+        'class AppScroll extends ScrollController {}\n',
+      );
       await put('lib/ctl2.dart', 'class Deep extends AppScroll {}\n');
       await put('lib/s.dart', '''
 class S extends State<W> {
@@ -37,13 +40,18 @@ class S extends State<W> {
 ''');
     });
 
-    test('project subclasses of a disposable are found (project-index)', () async {
-      final r = await audit();
-      final hit = r.findings.singleWhere((f) => f.rule == 'undisposed-controller');
-      expect(hit.basis, 'project-index');
-      expect(hit.title, contains('Deep'));
-      expect(r.resolution, startsWith('syntax-only'));
-    });
+    test(
+      'project subclasses of a disposable are found (project-index)',
+      () async {
+        final r = await audit();
+        final hit = r.findings.singleWhere(
+          (f) => f.rule == 'undisposed-controller',
+        );
+        expect(hit.basis, 'project-index');
+        expect(hit.title, contains('Deep'));
+        expect(r.resolution, startsWith('syntax-only'));
+      },
+    );
 
     test('resolved types are used when dependencies are prepared', () async {
       await put('pubspec.yaml', 'name: t\nenvironment:\n  sdk: ^3.0.0\n');
@@ -70,20 +78,24 @@ class S {
       final r = await audit(resolve: true);
       expect(r.resolution, 'resolved');
       expect(
-        r.findings.where((f) => f.basis == 'resolved-types').map((f) => f.title),
+        r.findings
+            .where((f) => f.basis == 'resolved-types')
+            .map((f) => f.title),
         contains(contains('Deep')),
       );
     });
   });
 
-  test('resolved: a static lookup returning a disposable is not a creation', () async {
-    await put('pubspec.yaml', 'name: t\nenvironment:\n  sdk: ^3.0.0\n');
-    await put(
-      '.dart_tool/package_config.json',
-      '{"configVersion":2,"packages":[{"name":"t","rootUri":"../",'
-          '"packageUri":"lib/","languageVersion":"3.0"}]}',
-    );
-    await put('lib/s.dart', '''
+  test(
+    'resolved: a static lookup returning a disposable is not a creation',
+    () async {
+      await put('pubspec.yaml', 'name: t\nenvironment:\n  sdk: ^3.0.0\n');
+      await put(
+        '.dart_tool/package_config.json',
+        '{"configVersion":2,"packages":[{"name":"t","rootUri":"../",'
+            '"packageUri":"lib/","languageVersion":"3.0"}]}',
+      );
+      await put('lib/s.dart', '''
 class TabController {}
 class Default {
   static TabController of(int c) => TabController();
@@ -92,10 +104,14 @@ class S {
   Object build(int c) { final t = Default.of(c); return t; }
 }
 ''');
-    final r = await audit(resolve: true);
-    expect(r.resolution, 'resolved');
-    expect(r.findings.where((f) => f.rule == 'controller-created-in-build'), isEmpty);
-  });
+      final r = await audit(resolve: true);
+      expect(r.resolution, 'resolved');
+      expect(
+        r.findings.where((f) => f.rule == 'controller-created-in-build'),
+        isEmpty,
+      );
+    },
+  );
 
   group('anti-slop score', () {
     Future<SlopDimension> dim(String name) async {
@@ -126,19 +142,30 @@ $children
     });
 
     test('complexity above the limit is reported', () async {
-      final ifs = List.generate(complexityLimit + 1, (i) => 'if (x == $i) y++;');
+      final ifs = List.generate(
+        complexityLimit + 1,
+        (i) => 'if (x == $i) y++;',
+      );
       await put('lib/c.dart', 'void f(int x, int y) {\n${ifs.join('\n')}\n}\n');
       expect((await dim('complexity')).items!.single.title, contains('f:'));
     });
 
     test('copyWith is excluded from complexity', () async {
-      final fields = List.generate(complexityLimit + 1, (i) => 'a$i ?? this.a$i');
-      await put('lib/m.dart', 'class M {\n  M copyWith() => M(${fields.join(', ')});\n}\n');
+      final fields = List.generate(
+        complexityLimit + 1,
+        (i) => 'a$i ?? this.a$i',
+      );
+      await put(
+        'lib/m.dart',
+        'class M {\n  M copyWith() => M(${fields.join(', ')});\n}\n',
+      );
       expect((await dim('complexity')).items, isEmpty);
     });
 
-    test('mixed responsibilities: widget I/O and view model BuildContext', () async {
-      await put('lib/w.dart', '''
+    test(
+      'mixed responsibilities: widget I/O and view model BuildContext',
+      () async {
+        await put('lib/w.dart', '''
 class W extends StatelessWidget {
   Widget build(BuildContext c) { final d = Dio(); return Text(''); }
 }
@@ -146,8 +173,9 @@ class VM extends BaseViewModel {
   void go(BuildContext context) {}
 }
 ''');
-      expect((await dim('mixed-responsibilities')).items, hasLength(2));
-    });
+        expect((await dim('mixed-responsibilities')).items, hasLength(2));
+      },
+    );
 
     test('useless layer: pure forwarding class without contract', () async {
       await put('lib/r.dart', '''
@@ -171,17 +199,29 @@ class Impl implements Contract {
       expect(items.single.title, startsWith('Wrap'));
     });
 
-    test('dependencies and tests are measured, N/E when nothing to measure', () async {
-      await put('lib/x.dart', "import 'package:used/used.dart';\nclass XRepository {}\n");
-      await put(
-        'pubspec.yaml',
-        'name: t\ndependencies:\n  flutter:\n    sdk: flutter\n  used: ^1.0.0\n  unused: ^1.0.0\n',
-      );
-      expect((await dim('dependencies')).items!.single.title, contains('unused'));
-      expect((await dim('tests')).items, hasLength(1));
-      await put('test/x_test.dart', "import 'package:t/x.dart';\nvoid main() {}\n");
-      expect((await dim('tests')).items, isEmpty);
-    });
+    test(
+      'dependencies and tests are measured, N/E when nothing to measure',
+      () async {
+        await put(
+          'lib/x.dart',
+          "import 'package:used/used.dart';\nclass XRepository {}\n",
+        );
+        await put(
+          'pubspec.yaml',
+          'name: t\ndependencies:\n  flutter:\n    sdk: flutter\n  used: ^1.0.0\n  unused: ^1.0.0\n',
+        );
+        expect(
+          (await dim('dependencies')).items!.single.title,
+          contains('unused'),
+        );
+        expect((await dim('tests')).items, hasLength(1));
+        await put(
+          'test/x_test.dart',
+          "import 'package:t/x.dart';\nvoid main() {}\n",
+        );
+        expect((await dim('tests')).items, isEmpty);
+      },
+    );
 
     test('no pubspec and no logic classes: not evaluated', () async {
       await put('lib/y.dart', 'class Y {}\n');

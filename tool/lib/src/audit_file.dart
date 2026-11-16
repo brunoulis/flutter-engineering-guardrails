@@ -195,7 +195,9 @@ final class _Collector extends RecursiveAstVisitor<void> {
           ? (type: name, basis: 'resolved-types')
           : null;
     }
-    if (disposableTypes.contains(name)) return (type: name, basis: 'syntax-tree');
+    if (disposableTypes.contains(name)) {
+      return (type: name, basis: 'syntax-tree');
+    }
     if (indexed.contains(name)) return (type: name, basis: 'project-index');
     return null;
   }

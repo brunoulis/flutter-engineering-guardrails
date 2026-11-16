@@ -24,7 +24,9 @@ Set<String> indexDisposableSubtypes(Iterable<String> sources) {
     changed = false;
     for (final MapEntry(key: name, value: supers) in parents.entries) {
       if (result.contains(name) || disposableTypes.contains(name)) continue;
-      if (supers.any((s) => disposableTypes.contains(s) || result.contains(s))) {
+      if (supers.any(
+        (s) => disposableTypes.contains(s) || result.contains(s),
+      )) {
         result.add(name);
         changed = true;
       }

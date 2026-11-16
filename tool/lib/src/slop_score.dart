@@ -14,15 +14,29 @@ const _minCloneTokens = 60;
 const complexityLimit = 15;
 
 const _uiBases = {'StatelessWidget', 'StatefulWidget', 'State'};
-const _ioNames = {'Dio', 'HttpClient', 'SharedPreferences', 'jsonDecode', 'http'};
+const _ioNames = {
+  'Dio',
+  'HttpClient',
+  'SharedPreferences',
+  'jsonDecode',
+  'http',
+};
 const _uiInViewModel = {
   'BuildContext', 'Navigator', 'showDialog', 'ScaffoldMessenger', //
 };
 const _logicSuffixes = [
-  'ViewModel', 'Repository', 'RepositoryImpl', 'DataSource', 'Service', 'UseCase',
+  'ViewModel',
+  'Repository',
+  'RepositoryImpl',
+  'DataSource',
+  'Service',
+  'UseCase',
 ];
 const _implicitDeps = {
-  'flutter', 'flutter_localizations', 'flutter_web_plugins', 'cupertino_icons',
+  'flutter',
+  'flutter_localizations',
+  'flutter_web_plugins',
+  'cupertino_icons',
 };
 
 /// One piece of evidence behind a grade.
@@ -63,12 +77,15 @@ final class SlopReport {
   final List<SlopDimension> dimensions;
 
   Map<String, Object?> toJson() => {
-    'scale': '3 = no evidence ... 0 = 10+ items; null = not evaluated. Not summed.',
+    'scale':
+        '3 = no evidence ... 0 = 10+ items; null = not evaluated. Not summed.',
     'dimensions': {
       for (final d in dimensions)
         d.name: {
           'grade': d.grade,
-          'evidence': [for (final i in d.items ?? const <SlopItem>[]) i.toJson()],
+          'evidence': [
+            for (final i in d.items ?? const <SlopItem>[]) i.toJson(),
+          ],
           if (d.note != null) 'note': d.note,
         },
     },
@@ -101,7 +118,9 @@ SlopReport computeSlop(String root, List<String> files) {
     for (final b in scan.bodies) {
       final key = _normalized(b.body);
       if (key != null) {
-        clones.putIfAbsent(key, () => []).add(SlopItem(rel, lineOf(b.owner), b.name));
+        clones
+            .putIfAbsent(key, () => [])
+            .add(SlopItem(rel, lineOf(b.owner), b.name));
       }
       final c = _complexity(b.body);
       // copyWith has one `??` per field: branches, but not real complexity.
@@ -172,7 +191,11 @@ SlopDimension _unusedDependencies(String root) {
   try {
     yaml = loadYaml(pubspec.readAsStringSync());
   } on YamlException {
-    return const SlopDimension('dependencies', null, note: 'pubspec unreadable');
+    return const SlopDimension(
+      'dependencies',
+      null,
+      note: 'pubspec unreadable',
+    );
   }
   final deps = yaml is YamlMap ? yaml['dependencies'] : null;
   if (deps is! YamlMap) return const SlopDimension('dependencies', null);
@@ -368,7 +391,10 @@ final class _SlopVisitor extends RecursiveAstVisitor<void> {
     if (_uiBases.contains(base)) {
       final io = names.intersection(_ioNames);
       if (io.isNotEmpty) {
-        mixed.add((lineOf(node), '$name (widget) uses ${io.join(', ')} directly'));
+        mixed.add((
+          lineOf(node),
+          '$name (widget) uses ${io.join(', ')} directly',
+        ));
       }
     } else if (base.endsWith('ViewModel') || base == 'ChangeNotifier') {
       final ui = names.intersection(_uiInViewModel);
@@ -414,7 +440,9 @@ String? _wrapperTarget(ClassDeclaration node) {
     final b = m.body;
     final Expression? e = switch (b) {
       ExpressionFunctionBody(:final expression) => expression,
-      BlockFunctionBody(block: Block(statements: [ReturnStatement(:final expression)])) =>
+      BlockFunctionBody(
+        block: Block(statements: [ReturnStatement(:final expression)]),
+      ) =>
         expression,
       _ => null,
     };

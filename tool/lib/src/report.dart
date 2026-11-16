@@ -73,9 +73,13 @@ String renderText(ProjectReport r) {
   if (slop != null) {
     s
       ..writeln()
-      ..writeln('Anti-Slop Score (3 = no evidence ... 0 = 10+; N/E = not evaluated; not summed)');
+      ..writeln(
+        'Anti-Slop Score (3 = no evidence ... 0 = 10+; N/E = not evaluated; not summed)',
+      );
     for (final d in slop.dimensions) {
-      s.writeln('  ${d.name}: ${d.grade ?? 'N/E'}${d.note == null ? '' : ' - ${d.note}'}');
+      s.writeln(
+        '  ${d.name}: ${d.grade ?? 'N/E'}${d.note == null ? '' : ' - ${d.note}'}',
+      );
       for (final i in (d.items ?? const []).take(5)) {
         s.writeln('    ${i.path}:${i.line} ${i.title}');
       }
