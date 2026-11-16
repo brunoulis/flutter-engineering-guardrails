@@ -117,6 +117,12 @@ final generated = TextEditingController();
     expect(err, contains('root'));
   });
 
+  test('--strict: syntax errors make the audit incomplete (exit 2)', () async {
+    await File(p.join(root.path, 'lib', 'bad.dart')).writeAsString('class {');
+    expect((await run(['--root', root.path])).$1, 0);
+    expect((await run(['--root', root.path, '--strict'])).$1, 2);
+  });
+
   test('baseline, --fail-on and sarif', () async {
     final base = p.join(root.path, 'base.json');
     final common = ['--root', root.path, '--fail-on', 'P3'];

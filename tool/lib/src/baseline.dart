@@ -10,7 +10,8 @@ List<String> fingerprints(List<Finding> findings) {
   return [
     for (final f in findings)
       () {
-        final key = '${f.rule}|${f.path}|${f.evidence}';
+        final key =
+            '${f.rule}|${f.path}|${f.evidence.replaceAll(RegExp(r'\s+'), ' ')}';
         final n = seen[key] = (seen[key] ?? 0) + 1;
         return '$key|$n';
       }(),

@@ -10,6 +10,7 @@ import 'report.dart';
 
 const _exitOk = 0;
 const _exitFindings = 1;
+const _exitIncomplete = 2;
 const _exitUsage = 64;
 const _exitIo = 74;
 
@@ -56,6 +57,13 @@ final _parser = ArgParser()
     help:
         'Exit 1 when a finding of this priority or higher exists (only new '
         'ones when --baseline is given).',
+  )
+  ..addFlag(
+    'strict',
+    negatable: false,
+    help:
+        'Exit 2 when files had syntax errors (incomplete audit), even if '
+        'no finding reaches --fail-on.',
   )
   ..addFlag(
     'resolve',
@@ -179,10 +187,13 @@ Future<int> runCli(
 
   final failOn = args.option('fail-on');
   final gated = diff?.added ?? report.findings;
-  final exitCode =
+  final failed =
       failOn != null && gated.any((f) => f.priority.compareTo(failOn) <= 0)
       ? _exitFindings
       : _exitOk;
+  final exitCode = args.flag('strict') && report.parseErrors.isNotEmpty
+      ? _exitIncomplete
+      : failed;
 
   final text = switch (args.option('format')) {
     'json' => renderJson(report, diff: diff),

@@ -45,3 +45,28 @@ jobs:
       - name: Test lifecycle behavior
         working-directory: examples/async_lifecycle
         run: flutter test --no-pub
+
+  code-scanning:
+    # SARIF upload needs security-events: write, which fork PRs do not get.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+      - run: dart pub get --enforce-lockfile
+        working-directory: tool
+      - name: Audit the example and write SARIF
+        run: dart run tool/bin/flutter_rails_audit.dart --root examples/async_lifecycle --strict --format sarif --output rails.sarif
+      - uses: github/codeql-action/upload-sarif@v3 # TODO: pin to a commit SHA like the other actions
+        with:
+          sarif_file: rails.sarif
+          category: flutter-rails-audit
