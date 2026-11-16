@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import 'audit_file.dart';
 import 'finding.dart';
+import 'import_graph.dart';
 import 'project_index.dart';
 import 'project_rules.dart';
 import 'slop_score.dart';
@@ -108,6 +109,7 @@ Future<ProjectReport> auditProject(
   final findings = <Finding>[];
   final skipped = <String>[];
   final parseErrors = <String, List<String>>{};
+  final sources = <String, String>{};
   final navigation = <String, ({String path, int line})>{};
   var scannedLines = 0;
 
@@ -119,6 +121,7 @@ Future<ProjectReport> auditProject(
         continue;
       }
       final content = File(file).readAsStringSync();
+      sources[rel] = content;
       ResolvedUnitResult? resolved;
       if (collection != null) {
         final result = await collection
@@ -167,6 +170,8 @@ Future<ProjectReport> auditProject(
       );
     }
   }
+
+  findings.addAll(auditImportGraph(root, sources));
 
   await collection?.dispose();
   findings.sort(Finding.compare);
