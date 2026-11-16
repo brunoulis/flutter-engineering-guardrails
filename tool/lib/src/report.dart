@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'audit_project.dart';
+import 'baseline.dart';
+import 'finding.dart';
 
 const caveats = [
   'Leads from the syntax tree, a cross-file class index and (when the '
@@ -22,7 +24,31 @@ Map<String, int> _counts(ProjectReport r) {
   );
 }
 
-String renderJson(ProjectReport r) =>
+/// Findings per 1000 scanned lines, so projects of different size compare.
+double perKloc(num count, ProjectReport r) => r.scannedLines == 0
+    ? 0
+    : double.parse((count * 1000 / r.scannedLines).toStringAsFixed(2));
+
+Map<String, Object?> _rates(ProjectReport r) => {
+  'findings_per_kloc': perKloc(r.findings.length, r),
+  'by_priority_per_kloc': {
+    for (final e in _counts(r).entries) e.key: perKloc(e.value, r),
+  },
+  if (r.slop != null)
+    'anti_slop_items_per_kloc': {
+      for (final d in r.slop!.dimensions)
+        if (d.items != null) d.name: perKloc(d.items!.length, r),
+    },
+};
+
+Map<String, Object> _baseline(BaselineDiff d) => {
+  'new': d.added.length,
+  'known': d.known.length,
+  'fixed': d.fixed,
+  'new_findings': [for (final f in d.added) f.toJson()],
+};
+
+String renderJson(ProjectReport r, {BaselineDiff? diff}) =>
     const JsonEncoder.withIndent('  ').convert({
       'tool': 'flutter_rails_audit',
       'root': r.root,
@@ -31,6 +57,8 @@ String renderJson(ProjectReport r) =>
       'scanned_lines': r.scannedLines,
       'resolution': r.resolution,
       'counts_by_priority': _counts(r),
+      'rates': _rates(r),
+      if (diff != null) 'baseline': _baseline(diff),
       'findings': [for (final f in r.findings) f.toJson()],
       'parse_errors': r.parseErrors,
       if (r.slop != null) 'anti_slop': r.slop!.toJson(),
@@ -38,7 +66,7 @@ String renderJson(ProjectReport r) =>
       'caveats': caveats,
     });
 
-String renderText(ProjectReport r) {
+String renderText(ProjectReport r, {BaselineDiff? diff}) {
   final s = StringBuffer()
     ..writeln('Flutter Engineering Audit (heuristic leads)')
     ..writeln('Root: ${r.root} | scope: ${r.scopes.join(', ')}')
@@ -46,7 +74,14 @@ String renderText(ProjectReport r) {
       'Files: ${r.scannedFiles} | lines: ${r.scannedLines} | '
       'signals: ${r.findings.length}',
     )
-    ..writeln('Types: ${r.resolution}');
+    ..writeln('Types: ${r.resolution}')
+    ..writeln('Rate: ${perKloc(r.findings.length, r)} signals per 1000 lines');
+  if (diff != null) {
+    s.writeln(
+      'Baseline: ${diff.added.length} new, ${diff.known.length} known, '
+      '${diff.fixed} fixed',
+    );
+  }
   for (final f in r.findings) {
     s
       ..writeln()
@@ -93,4 +128,57 @@ String renderText(ProjectReport r) {
       'modified.',
     );
   return s.toString();
+}
+
+const _sarifLevel = {'P0': 'error', 'P1': 'error', 'P2': 'warning'};
+
+/// SARIF 2.1.0, one result per finding. With [diff], `baselineState` is
+/// `new` or `unchanged`.
+String renderSarif(ProjectReport r, {BaselineDiff? diff}) {
+  final prints = fingerprints(r.findings);
+  final added = diff == null
+      ? null
+      : (Set<Finding>.identity()..addAll(diff.added));
+  final rules = {for (final f in r.findings) f.rule};
+  return const JsonEncoder.withIndent('  ').convert({
+    r'$schema': 'https://json.schemastore.org/sarif-2.1.0.json',
+    'version': '2.1.0',
+    'runs': [
+      {
+        'tool': {
+          'driver': {
+            'name': 'flutter_rails_audit',
+            'rules': [
+              for (final id in rules.toList()..sort()) {'id': id},
+            ],
+          },
+        },
+        'results': [
+          for (var i = 0; i < r.findings.length; i++)
+            {
+              'ruleId': r.findings[i].rule,
+              'level': _sarifLevel[r.findings[i].priority] ?? 'note',
+              'message': {
+                'text':
+                    '${r.findings[i].title} (heuristic lead; '
+                    'verify: ${r.findings[i].check})',
+              },
+              'locations': [
+                {
+                  'physicalLocation': {
+                    'artifactLocation': {'uri': r.findings[i].path},
+                    'region': {'startLine': r.findings[i].line},
+                  },
+                },
+              ],
+              'partialFingerprints': {'railsFingerprint/v1': prints[i]},
+              if (added != null)
+                'baselineState': added.contains(r.findings[i])
+                    ? 'new'
+                    : 'unchanged',
+            },
+        ],
+      },
+    ],
+  });
 }

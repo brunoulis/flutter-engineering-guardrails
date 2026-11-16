@@ -4,10 +4,12 @@ import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
 import 'audit_project.dart';
+import 'baseline.dart';
 import 'project_rules.dart';
 import 'report.dart';
 
 const _exitOk = 0;
+const _exitFindings = 1;
 const _exitUsage = 64;
 const _exitIo = 74;
 
@@ -27,7 +29,7 @@ final _parser = ArgParser()
   ..addOption(
     'format',
     abbr: 'f',
-    allowed: ['text', 'json'],
+    allowed: ['text', 'json', 'sarif'],
     defaultsTo: 'text',
   )
   ..addOption(
@@ -39,6 +41,21 @@ final _parser = ArgParser()
     'large-file-lines',
     defaultsTo: '700',
     help: 'Line count above which a file is reported.',
+  )
+  ..addOption(
+    'baseline',
+    help: 'Baseline file; only findings absent from it count as new.',
+  )
+  ..addOption(
+    'write-baseline',
+    help: 'Write the current findings as a baseline file.',
+  )
+  ..addOption(
+    'fail-on',
+    allowed: ['P0', 'P1', 'P2', 'P3'],
+    help:
+        'Exit 1 when a finding of this priority or higher exists (only new '
+        'ones when --baseline is given).',
   )
   ..addFlag(
     'resolve',
@@ -133,14 +150,50 @@ Future<int> runCli(
     resolve: args.flag('resolve'),
     score: args.flag('score'),
   );
-  final text = args.option('format') == 'json'
-      ? renderJson(report)
-      : renderText(report);
+
+  BaselineDiff? diff;
+  final baselinePath = args.option('baseline');
+  if (baselinePath != null) {
+    try {
+      diff = BaselineDiff(
+        report.findings,
+        parseBaseline(File(baselinePath).readAsStringSync()),
+      );
+    } on FileSystemException catch (e) {
+      return usageError('cannot read baseline $baselinePath: ${e.message}');
+    } on FormatException catch (e) {
+      return usageError('$baselinePath: ${e.message}');
+    }
+  }
+  final writeBaseline = args.option('write-baseline');
+  if (writeBaseline != null) {
+    try {
+      final file = File(writeBaseline);
+      await file.parent.create(recursive: true);
+      await file.writeAsString('${renderBaseline(report.findings)}\n');
+    } on FileSystemException catch (e) {
+      err.writeln('Error: cannot write $writeBaseline: ${e.message}');
+      return _exitIo;
+    }
+  }
+
+  final failOn = args.option('fail-on');
+  final gated = diff?.added ?? report.findings;
+  final exitCode =
+      failOn != null && gated.any((f) => f.priority.compareTo(failOn) <= 0)
+      ? _exitFindings
+      : _exitOk;
+
+  final text = switch (args.option('format')) {
+    'json' => renderJson(report, diff: diff),
+    'sarif' => renderSarif(report, diff: diff),
+    _ => renderText(report, diff: diff),
+  };
 
   final output = args.option('output');
   if (output == null) {
     out.write(text.endsWith('\n') ? text : '$text\n');
-    return _exitOk;
+    return exitCode;
   }
   try {
     final file = File(output);
@@ -151,5 +204,5 @@ Future<int> runCli(
     return _exitIo;
   }
   out.writeln('Report written to $output');
-  return _exitOk;
+  return exitCode;
 }

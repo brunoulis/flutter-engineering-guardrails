@@ -116,4 +116,50 @@ final generated = TextEditingController();
     expect(code, 64);
     expect(err, contains('root'));
   });
+
+  test('baseline, --fail-on and sarif', () async {
+    final base = p.join(root.path, 'base.json');
+    final common = ['--root', root.path, '--fail-on', 'P3'];
+
+    final (c1, _, _) = await run([...common, '--write-baseline', base]);
+    expect(c1, 1, reason: 'findings exist and no baseline yet');
+
+    final (c2, out2, _) = await run([
+      ...common,
+      '--baseline',
+      base,
+      '-f',
+      'json',
+    ]);
+    expect(c2, 0, reason: 'nothing new vs baseline');
+    final b = (jsonDecode(out2) as Map)['baseline'] as Map;
+    expect([b['new'], b['fixed']], [0, 0]);
+
+    await File(p.join(root.path, 'lib', 'c.dart')).writeAsString(
+      'class T extends State<W> { final c = ScrollController(); }',
+    );
+    final (c3, out3, _) = await run([
+      ...common,
+      '--baseline',
+      base,
+      '-f',
+      'sarif',
+    ]);
+    expect(c3, 1, reason: 'a new finding appeared');
+    final sarif = jsonDecode(out3) as Map;
+    expect(sarif['version'], '2.1.0');
+    final results = ((sarif['runs'] as List).single as Map)['results'] as List;
+    expect(
+      results.where((r) => (r as Map)['baselineState'] == 'new'),
+      hasLength(1),
+    );
+
+    final (c4, _, err4) = await run([
+      ...common,
+      '--baseline',
+      p.join(root.path, 'nope.json'),
+    ]);
+    expect(c4, 64);
+    expect(err4, contains('baseline'));
+  });
 }

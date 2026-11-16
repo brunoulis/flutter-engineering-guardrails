@@ -213,9 +213,13 @@ Rules no lint covers (undisposed controllers, controllers or futures created in 
 ```bash
 dart run <skill>/tool/bin/flutter_rails_audit.dart --root .
 dart run <skill>/tool/bin/flutter_rails_audit.dart --root . --path lib --path test --format json --output flutter-rails-audit.json
+
+# CI: freeze today's debt once, then fail only on NEW P1+ findings; SARIF for PR annotations
+dart run <skill>/tool/bin/flutter_rails_audit.dart --root . --write-baseline .rails-baseline.json
+dart run <skill>/tool/bin/flutter_rails_audit.dart --root . --baseline .rails-baseline.json --fail-on P1 --format sarif --output rails.sarif
 ```
 
-It parses every non-generated `.dart` file with `package:analyzer`, so it understands which class creates a controller and whether that class disposes it, instead of matching text. It sees syntax, not types: its findings are **heuristic leads**, not confirmed bugs, and it never modifies the project. The rules and what each one deliberately ignores are listed in `references/refactor-audit.md`, together with `rg` / `git grep` fallback patterns for machines where the tool cannot run.
+It parses every non-generated `.dart` file with `package:analyzer`, so it understands which class creates a controller and whether that class disposes it, instead of matching text. When the package has prepared dependencies it resolves types with the analyzer (`--no-resolve` forces syntax-only), and `--score` adds the Anti-Slop Score. Its findings are **heuristic leads**, not confirmed bugs, and it never modifies the project. The rules and what each one deliberately ignores are listed in `references/refactor-audit.md`, together with `rg` / `git grep` fallback patterns for machines where the tool cannot run.
 
 To keep these rules active in every review, copy the block in `templates/always-on-agent-rule.md` into `AGENTS.md`, `CLAUDE.md` or the equivalent configuration. For CI, see `references/quality-gates-and-ci.md`.
 
@@ -236,7 +240,7 @@ See `references/sources-and-rationale.md` for where the recommendations come fro
 **2026-11-14, Windows x64, Flutter 3.50 / Dart 3.14, analyzer 14.7.0:**
 
 - The lints in `templates/analysis_options.yaml` resolve with no unknown-rule warnings and each fires on a probe file that reproduces the old Rust scanner's rules. The fallback search patterns match the remaining cases on the same file with both ripgrep 15.2.0 and `git grep`.
-- `flutter_rails_audit`: 33 unit/CLI tests pass (`dart test`), `dart analyze` is clean.
+- `flutter_rails_audit`: 64 unit/CLI tests pass (`dart test`), `dart analyze` is clean.
 - On the Flutter framework (`packages/flutter`, 679 files, 527k lines, ~10 s including JIT startup): 0 syntax errors and 3 ownership leads, each worth a look. Two are app-lifetime `ValueNotifier`s in bindings and one is a fallback `ValueNotifier` created in `build()`. A false positive found in this run (a field controller reassigned in `build()` and disposed correctly) was fixed and covered by a test.
 - On the Flutter Gallery app (`dev/integration_tests/flutter_gallery`, 102 files): 10 ownership leads, and all 10 were confirmed by reading the source (controllers whose files never call `dispose`, and a `TextEditingController` built inside `build()`).
 
