@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Flutter Engineering Guardrails logo: a pixel-art miner in a mine cart with the Flutter logo" width="480">
+</p>
+
 # Dart and Flutter Engineering Guardrails
 
 A portable agent skill for **writing, auditing and refactoring Dart and Flutter code**: Dart libraries, packages, CLI tools and services, plus Flutter applications. It follows the project's conventions and uses official language/API documentation, real technical discussions and executable counterexamples. The historical ID/folder remains `flutter-engineering-guardrails` so existing installations and invocations keep working.
