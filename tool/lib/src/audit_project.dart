@@ -1,10 +1,14 @@
 import 'dart:io';
 
+import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
+import 'package:analyzer/dart/analysis/results.dart';
 import 'package:path/path.dart' as p;
 
 import 'audit_file.dart';
 import 'finding.dart';
+import 'project_index.dart';
 import 'project_rules.dart';
+import 'slop_score.dart';
 
 /// Directory names skipped anywhere in the tree.
 const _excludedDirs = {
@@ -37,6 +41,8 @@ final class ProjectReport {
     required this.findings,
     required this.skipped,
     required this.parseErrors,
+    required this.resolution,
+    this.slop,
   });
 
   final String root;
@@ -48,17 +54,28 @@ final class ProjectReport {
 
   /// Relative path → syntax errors (the file was still audited).
   final Map<String, List<String>> parseErrors;
+
+  /// `resolved` (analyzer type resolution) or `syntax-only (reason)`; both
+  /// also use the cross-file class index.
+  final String resolution;
+
+  /// Present only with `--score`.
+  final SlopReport? slop;
 }
 
 /// Audits every non-generated `.dart` file under [scopeDirs] (absolute,
 /// already validated to be inside [root]). Read-only; symlinks are not
-/// followed.
-ProjectReport auditProject(
+/// followed. With [resolve], files are resolved when the package's
+/// dependencies are prepared (`.dart_tool/package_config.json`); otherwise, or
+/// if resolution fails, the audit falls back to syntax plus the class index.
+Future<ProjectReport> auditProject(
   String root,
   List<String> scopeDirs, {
   int largeFileLines = 700,
   ProjectRules? rules,
-}) {
+  bool resolve = true,
+  bool score = false,
+}) async {
   final files = <String>{};
   for (final scope in scopeDirs) {
     final entity = FileSystemEntity.typeSync(scope, followLinks: false);
@@ -69,6 +86,24 @@ ProjectReport auditProject(
     }
   }
   final sorted = files.toList()..sort();
+
+  final indexed = indexDisposableSubtypes(_readAll(sorted));
+
+  var resolution = 'syntax-only (resolution disabled)';
+  AnalysisContextCollection? collection;
+  if (resolve) {
+    if (File(p.join(root, '.dart_tool', 'package_config.json')).existsSync()) {
+      try {
+        collection = AnalysisContextCollection(includedPaths: [root]);
+        resolution = 'resolved';
+      } on Object catch (e) {
+        resolution = 'syntax-only (resolution failed: $e)';
+      }
+    } else {
+      resolution =
+          'syntax-only (no .dart_tool/package_config.json; run pub get)';
+    }
+  }
 
   final findings = <Finding>[];
   final skipped = <String>[];
@@ -84,7 +119,21 @@ ProjectReport auditProject(
         continue;
       }
       final content = File(file).readAsStringSync();
-      final audit = auditSource(rel, content, largeFileLines: largeFileLines);
+      ResolvedUnitResult? resolved;
+      if (collection != null) {
+        final result = await collection
+            .contextFor(file)
+            .currentSession
+            .getResolvedUnit(file);
+        if (result is ResolvedUnitResult) resolved = result;
+      }
+      final audit = auditSource(
+        rel,
+        content,
+        largeFileLines: largeFileLines,
+        resolved: resolved,
+        indexedDisposables: indexed,
+      );
       scannedLines += audit.lines;
       findings.addAll(audit.findings);
       if (rules != null) findings.addAll(rules.audit(rel, content));
@@ -119,6 +168,7 @@ ProjectReport auditProject(
     }
   }
 
+  await collection?.dispose();
   findings.sort(Finding.compare);
   return ProjectReport(
     root: root,
@@ -131,7 +181,21 @@ ProjectReport auditProject(
     findings: findings,
     skipped: skipped,
     parseErrors: parseErrors,
+    resolution: resolution,
+    slop: score ? computeSlop(root, sorted) : null,
   );
+}
+
+Iterable<String> _readAll(List<String> files) sync* {
+  for (final file in files) {
+    try {
+      if (File(file).lengthSync() <= _maxFileBytes) {
+        yield File(file).readAsStringSync();
+      }
+    } on Exception {
+      continue; // reported by the main pass
+    }
+  }
 }
 
 void _walk(String root, Directory dir, Set<String> files) {

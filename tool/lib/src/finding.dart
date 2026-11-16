@@ -1,5 +1,5 @@
-/// A lead produced by the audit. Never a confirmed bug: the audit parses
-/// syntax only (no type resolution, no cross-file ownership).
+/// A lead produced by the audit. Never a confirmed bug; [basis] says how much
+/// the audit knew about types.
 final class Finding {
   const Finding({
     required this.rule,
@@ -9,6 +9,7 @@ final class Finding {
     required this.title,
     required this.evidence,
     required this.check,
+    this.basis = 'syntax-tree',
   });
 
   final String rule;
@@ -29,11 +30,15 @@ final class Finding {
   /// What the agent must verify before reporting it as probable/confirmed.
   final String check;
 
+  /// How the type facts were obtained: `syntax-tree`, `project-index`
+  /// (cross-file class hierarchy) or `resolved-types` (analyzer resolution).
+  final String basis;
+
   Map<String, Object> toJson() => {
     'rule': rule,
     'priority': priority,
     'confidence': 'heuristic',
-    'basis': 'syntax-tree',
+    'basis': basis,
     'path': path,
     'line': line,
     'title': title,

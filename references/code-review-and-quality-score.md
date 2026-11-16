@@ -45,3 +45,18 @@ Order by **P0 to P3** (defined in `refactor-audit.md`). For each finding include
 **Good:** "In `lib/features/search/search_vm.dart:88`, call A can finish after B and overwrite the results. Reproduced with two completers; I propose checking the request ID before publishing state, without changing Provider". 
 
 Use [`../templates/review-checklist.md`](../templates/review-checklist.md) as the final checklist when the change is large.
+
+## Anti-Slop Score (tool, `--score`)
+
+Evidence only; each dimension lists its items and is graded independently. Do not sum, average or compare repositories.
+
+| Dimension | Evidence counted | Deliberately **not** counted |
+|---|---|---|
+| duplication | function/method bodies of >= 60 tokens equal after renaming identifiers (literals kept) | similar-looking widgets with different content |
+| complexity | functions with cyclomatic complexity > 15 (`copyWith` excluded: one `??` per field) | file length, widget nesting, number of widgets |
+| mixed-responsibilities | widgets using Dio/HttpClient/SharedPreferences/jsonDecode directly; view models using `BuildContext`/Navigator/dialogs | classes that are merely long |
+| useless-layers | classes with >= 2 methods that all forward 1:1 to one field and implement no contract | layers the project mandates (repository contract + impl) |
+| dependencies | `pubspec.yaml` `dependencies` never imported from lib/bin/test | plugin-only or config-only packages need manual verification |
+| tests | logic classes (ViewModel/Repository/DataSource/Service/UseCase) whose file no test imports | actual coverage: an import is not coverage |
+
+Grade: 3 = no items, 2 = 1-2, 1 = 3-9, 0 = 10+, `N/E` = nothing to measure. The bands only let a report be compared with itself over time. Treat every item as a lead (see "confirmed / probable / heuristic").

@@ -3,7 +3,7 @@ description: >-
   Read-only structural audit for Flutter/Dart code, part of the
   flutter-engineering-guardrails skill. Parses Dart with package:analyzer and
   reports leads for the guardrail rules that no analyzer lint covers.
-version: 2.0.0
+version: 2.1.0
 publish_to: none
 
 environment:

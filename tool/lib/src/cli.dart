@@ -40,6 +40,19 @@ final _parser = ArgParser()
     defaultsTo: '700',
     help: 'Line count above which a file is reported.',
   )
+  ..addFlag(
+    'resolve',
+    defaultsTo: true,
+    help:
+        'Resolve types with the analyzer when the package has resolved '
+        'dependencies (.dart_tool/package_config.json); otherwise fall back '
+        'to syntax plus a cross-file class index.',
+  )
+  ..addFlag(
+    'score',
+    negatable: false,
+    help: 'Add the evidence-based Anti-Slop Score (per-dimension, not summed).',
+  )
   ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
 String get usage =>
@@ -112,11 +125,13 @@ Future<int> runCli(
     }
   }
 
-  final report = auditProject(
+  final report = await auditProject(
     root,
     scopes,
     largeFileLines: largeFileLines,
     rules: rules,
+    resolve: args.flag('resolve'),
+    score: args.flag('score'),
   );
   final text = args.option('format') == 'json'
       ? renderJson(report)

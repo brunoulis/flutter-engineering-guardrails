@@ -1,7 +1,9 @@
+import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/source/line_info.dart';
 
 import 'finding.dart';
@@ -55,21 +57,35 @@ final class FileAudit {
   final int lines;
 }
 
-/// Audits Dart [content] syntactically. [path] is only used for reporting.
-FileAudit auditSource(String path, String content, {int largeFileLines = 700}) {
-  final parsed = parseString(
-    content: content,
-    path: path,
-    throwIfDiagnostics: false,
-  );
-  final lineInfo = parsed.lineInfo;
+/// Audits Dart [content]. Syntactic by default; pass [resolved] (the resolved
+/// unit of the same file) to classify created types by their real supertypes.
+/// [indexedDisposables] are project classes that extend a disposable type
+/// (see `indexDisposableSubtypes`); [path] is only used for reporting.
+FileAudit auditSource(
+  String path,
+  String content, {
+  int largeFileLines = 700,
+  ResolvedUnitResult? resolved,
+  Set<String> indexedDisposables = const {},
+}) {
+  final parsed = resolved == null
+      ? parseString(content: content, path: path, throwIfDiagnostics: false)
+      : null;
+  final unit = resolved?.unit ?? parsed!.unit;
+  final lineInfo = resolved?.lineInfo ?? parsed!.lineInfo;
+  final diagnostics = resolved == null
+      ? parsed!.errors
+      : [
+          for (final e in resolved.diagnostics)
+            if (e.diagnosticCode.type.name == 'SYNTACTIC_ERROR') e,
+        ];
   final sourceLines = content.split('\n');
   final lines = content.endsWith('\n')
       ? sourceLines.length - 1
       : sourceLines.length;
 
-  final collector = _Collector(path, content, lineInfo);
-  parsed.unit.accept(collector);
+  final collector = _Collector(path, content, lineInfo, indexedDisposables);
+  unit.accept(collector);
 
   for (var i = 0; i < sourceLines.length; i++) {
     if (_ignoreForFile.hasMatch(sourceLines[i])) {
@@ -95,7 +111,7 @@ FileAudit auditSource(String path, String content, {int largeFileLines = 700}) {
   }
 
   final errors = [
-    for (final e in parsed.errors)
+    for (final e in diagnostics)
       () {
         final loc = lineInfo.getLocation(e.offset);
         return '${loc.lineNumber}:${loc.columnNumber} ${e.message}';
@@ -105,11 +121,12 @@ FileAudit auditSource(String path, String content, {int largeFileLines = 700}) {
 }
 
 final class _Collector extends RecursiveAstVisitor<void> {
-  _Collector(this.path, this.content, this.lineInfo);
+  _Collector(this.path, this.content, this.lineInfo, this.indexed);
 
   final String path;
   final String content;
   final LineInfo lineInfo;
+  final Set<String> indexed;
   final findings = <Finding>[];
   final navigation = <String, int>{};
 
@@ -121,6 +138,7 @@ final class _Collector extends RecursiveAstVisitor<void> {
     required String priority,
     required String title,
     required String check,
+    String basis = 'syntax-tree',
   }) {
     final start = lineInfo.getOffsetOfLine(line - 1);
     final end = line < lineInfo.lineCount
@@ -137,6 +155,7 @@ final class _Collector extends RecursiveAstVisitor<void> {
         title: title,
         evidence: evidence,
         check: check,
+        basis: basis,
       ),
     );
   }
@@ -147,13 +166,39 @@ final class _Collector extends RecursiveAstVisitor<void> {
     required String priority,
     required String title,
     required String check,
+    String basis = 'syntax-tree',
   }) => addAtLine(
     _line(node.offset),
     rule: rule,
     priority: priority,
     title: title,
     check: check,
+    basis: basis,
   );
+
+  /// Disposable created by [e], by resolved supertypes or the project index
+  /// when available, else by the syntactic name list.
+  ({String type, String basis})? _classify(Expression e) {
+    final name = createdType(e);
+    if (name == null) return null;
+    final inner = _unwrap(e);
+    final type = inner.staticType;
+    if (type is InterfaceType) {
+      // Resolved: `Foo.of(context)` is a lookup, not a creation.
+      if (inner is! InstanceCreationExpression) return null;
+      final element = type.element;
+      final names = {
+        element.name,
+        for (final s in element.allSupertypes) s.element.name,
+      };
+      return names.any(disposableTypes.contains)
+          ? (type: name, basis: 'resolved-types')
+          : null;
+    }
+    if (disposableTypes.contains(name)) return (type: name, basis: 'syntax-tree');
+    if (indexed.contains(name)) return (type: name, basis: 'project-index');
+    return null;
+  }
 
   // ---- class-level ownership: controllers and timers ----
 
@@ -170,7 +215,7 @@ final class _Collector extends RecursiveAstVisitor<void> {
   }
 
   void _auditOwnership(AstNode owner) {
-    final scan = _OwnershipScan()..run(owner);
+    final scan = _OwnershipScan(_classify)..run(owner);
     for (final MapEntry(key: name, value: created) in scan.owned.entries) {
       if (scan.released.contains(name)) continue;
       _add(
@@ -184,6 +229,7 @@ final class _Collector extends RecursiveAstVisitor<void> {
             'Confirm the real owner: if this class created it, dispose it '
             'in dispose()/close(); if ownership is handed elsewhere, say where. '
             'App-lifetime objects (bindings, singletons) may never need it.',
+        basis: created.basis,
       );
     }
   }
@@ -287,8 +333,9 @@ final class _Collector extends RecursiveAstVisitor<void> {
   }
 
   void _auditCreationInBuild(Expression node) {
-    final type = createdType(node);
-    if (type == null || !disposableTypes.contains(type)) return;
+    final found = _classify(node);
+    if (found == null) return;
+    final type = found.type;
     if (!_insideBuild(node)) return;
     if (_insideProviderCreate(node)) {
       return; // the provider owns and disposes it
@@ -317,6 +364,7 @@ final class _Collector extends RecursiveAstVisitor<void> {
           'Check repeated builds: replacing a field can lose the previous '
           'instance even if dispose() releases the last value. Reuse it, or '
           'verify replacement releases the old instance and preserves state.',
+      basis: found.basis,
     );
   }
 
@@ -342,7 +390,7 @@ final class _Collector extends RecursiveAstVisitor<void> {
         node.root;
 
     if (holder != null) {
-      final scan = _OwnershipScan()..run(scope);
+      final scan = _OwnershipScan(_classify)..run(scope);
       if (scan.cancelled.contains(holder) || scan.released.contains(holder)) {
         return;
       }
@@ -363,7 +411,7 @@ final class _Collector extends RecursiveAstVisitor<void> {
     if (callback is FunctionExpression) {
       final param = callback.parameters?.parameters.firstOrNull?.name?.lexeme;
       if (param != null && param != '_') {
-        final scan = _OwnershipScan()..run(callback.body);
+        final scan = _OwnershipScan(_classify)..run(callback.body);
         if (scan.cancelled.contains(param)) return;
       }
     }
@@ -398,7 +446,7 @@ final class _Collector extends RecursiveAstVisitor<void> {
         node.thisOrAncestorOfType<ClassDeclaration>() ??
         node.thisOrAncestorOfType<MixinDeclaration>();
     if (owner == null) return const {};
-    return (_OwnershipScan()..run(owner)).fields;
+    return (_OwnershipScan(_classify)..run(owner)).fields;
   }
 
   bool _disposedBefore(AstNode node, String name) {
@@ -417,9 +465,10 @@ final class _Collector extends RecursiveAstVisitor<void> {
 }
 
 final class _Created {
-  _Created(this.type, this.node);
+  _Created(this.type, this.node, this.basis);
   final String type;
   final AstNode node;
+  final String basis;
 }
 
 /// Collects, within one class/mixin (or any subtree):
@@ -427,6 +476,9 @@ final class _Created {
 /// - [released]: names disposed directly or referenced inside a release method;
 /// - [cancelled]: names on which `.cancel()` is called.
 final class _OwnershipScan extends RecursiveAstVisitor<void> {
+  _OwnershipScan(this.classify);
+
+  final ({String type, String basis})? Function(Expression) classify;
   final owned = <String, _Created>{};
   final released = <String>{};
   final cancelled = <String>{};
@@ -451,10 +503,8 @@ final class _OwnershipScan extends RecursiveAstVisitor<void> {
         final name = v.name.lexeme;
         fields.add(name);
         final init = v.initializer;
-        final type = init == null ? null : createdType(init);
-        if (type != null && disposableTypes.contains(type)) {
-          owned[name] = _Created(type, v);
-        }
+        final found = init == null ? null : classify(init);
+        if (found != null) owned[name] = _Created(found.type, v, found.basis);
       }
     }
     super.visitFieldDeclaration(node);
@@ -463,9 +513,12 @@ final class _OwnershipScan extends RecursiveAstVisitor<void> {
   @override
   void visitAssignmentExpression(AssignmentExpression node) {
     final name = refName(node.leftHandSide);
-    final type = createdType(node.rightHandSide);
-    if (name != null && type != null && disposableTypes.contains(type)) {
-      _pendingAssignments.putIfAbsent(name, () => _Created(type, node));
+    final found = classify(node.rightHandSide);
+    if (name != null && found != null) {
+      _pendingAssignments.putIfAbsent(
+        name,
+        () => _Created(found.type, node, found.basis),
+      );
     }
     super.visitAssignmentExpression(node);
   }
