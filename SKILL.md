@@ -18,6 +18,8 @@ Identify the affected package from its pubspec and callers. Use its resolved SDK
 
 For a local implementation, trace the affected state or value from input to output. Identify who owns each changed resource and what happens on error, cancellation or disposal. Check asynchronous behavior at the point a result is consumed. Exercise the changed contract and a relevant failure path with the package's analyzer and tests.
 
+When state changes can invoke listeners or caller-supplied work, trace what happens if the callback calls back into the controller before the original operation returns. Exercise immediate success, a synchronous throw, and delayed completion wherever these can change the outcome. Keep repeated legal retries from growing the call stack. In widget or unit tests, wait for an observed lifecycle or writer event when its exact scheduling is unspecified.
+
 Open additional guidance when the task calls for it.
 
 - For widget, controller or subscription lifetime decisions, consult [async lifecycle and errors](references/async-lifecycle-and-errors.md).
