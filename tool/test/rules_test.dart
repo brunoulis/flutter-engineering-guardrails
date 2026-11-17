@@ -9,6 +9,32 @@ List<String> _rules(String source) =>
     _audit(source).map((f) => f.rule).toList();
 
 void main() {
+  test('return leaving finally can override a pending error', () {
+    final findings = _audit('''
+int f(bool stop) {
+  try { throw StateError('failed'); } finally {
+    if (stop) return 1;
+  }
+}
+''');
+    final hit = findings.singleWhere((f) => f.rule == 'return-in-finally');
+    expect(hit.line, 3);
+  });
+
+  test('return in a cleanup closure belongs to that closure', () {
+    expect(
+      _rules('''
+int f() {
+  try { return 1; } finally {
+    int inner() { return 2; }
+    [1].map((x) { return inner(); }).toList();
+  }
+}
+'''),
+      isNot(contains('return-in-finally')),
+    );
+  });
+
   group('setstate-async-callback', () {
     test('flags an async closure passed to setState', () {
       final findings = _audit('''

@@ -202,6 +202,27 @@ final class _Collector extends RecursiveAstVisitor<void> {
     return null;
   }
 
+  @override
+  void visitReturnStatement(ReturnStatement node) {
+    AstNode child = node;
+    for (var parent = child.parent; parent != null; parent = child.parent) {
+      if (parent is FunctionBody) break;
+      if (parent is TryStatement && identical(parent.finallyBlock, child)) {
+        _add(
+          node,
+          rule: 'return-in-finally',
+          priority: 'P2',
+          title: 'Returning from finally can replace a pending error or result',
+          check:
+              'Exercise a failing try body and check what the caller receives.',
+        );
+        break;
+      }
+      child = parent;
+    }
+    super.visitReturnStatement(node);
+  }
+
   // ---- class-level ownership: controllers and timers ----
 
   @override
