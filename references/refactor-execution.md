@@ -65,3 +65,35 @@ bool qualifiesForDiscount(Iterable<Product> products) {
 The UI still runs `showDiscount()` only if the function returns true. Test the 100 boundary, 100.01, an empty iterable and relevant products. **If the rule is unique and trivial, leaving it where it is may also be better.**
 
 Use the template [`../templates/refactor-plan.md`](../templates/refactor-plan.md).
+
+## Scope budget (a fix must not rewrite what already worked)
+
+- List every file touched and give a one-line reason tied to the task. A file with no reason leaves the diff.
+- List every **existing behavior** the diff alters (defaults, ordering, error text, timing, UI). Each one is either required by the task, or reverted. "Cleaner this way" is not a reason.
+- A bug fix that touches many components that already worked is a red flag: re-check the root cause before widening the diff. Prefer fixing it once in the shared code over patching each caller.
+- Report in the output: `Files changed`, `Behaviors changed (intended)`, `Behaviors deliberately untouched`.
+
+## Churn control (stop the fix spiral)
+
+A fix that keeps growing is a signal, not progress. Pause and reconsider the approach when successive revisions of the same fix:
+
+- add a new mutable field, flag, counter, timer, callback or stream the original code did not have;
+- add a new category of state (e.g. a "pending" or "retrying" flag next to existing loading/error);
+- grow the diff well beyond the original bug, or need exceptions for special cases.
+
+Then: compare initial vs current complexity (new state, new dependencies, new abstractions, not just lines), revert the part that did not help, or fix the root cause instead. Do not present a hypothetical problem as a confirmed defect, and do not add a layer to patch the previous layer.
+
+## Regression Surface Report (required output for `implement` and `refactor`)
+
+Fill from the diff, not from memory. Mark each line `confirmed` (test/trace) or `to verify`.
+
+```text
+Existing files modified: 3 (path — reason each)
+Public contracts affected (exports, routes, serialization): 0
+New mutable state (fields, controllers, subscriptions): 1 — owner: X, disposed in: Y
+Existing execution paths affected: 2 (e.g. cancel while loading, back navigation)
+Paths with a test that failed before / passes after: 1 of 2
+Feature-flag/disabled/other-platform behavior preserved: confirmed | to verify
+```
+
+Duplicating a few lines to leave a delicate, working path untouched is acceptable for a bug fix; it is not a license to avoid a refactor when the debt is demonstrated.

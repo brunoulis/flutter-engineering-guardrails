@@ -59,3 +59,13 @@ Why: shared state in this flow; migrating a framework does not reduce the task's
 Cost: one ChangeNotifier and its test; we do not add an extra use-case/repo.
 Revisit if: coupling makes testing harder or duplicated logic reappears.
 ```
+
+## Responsibility and platform boundaries
+
+Separate native/platform integration, shared logic, and Flutter UI, as large multi-platform apps (e.g. RustDesk: native core, Flutter UI, per-platform glue) do. Turn the split into dependency rules the project can check:
+
+- Shared/domain code does not import `package:flutter/*`, `dart:ui`, `dart:html`/`dart:js_interop`, or platform-specific files.
+- Platform code (method/FFI channels, per-OS implementations) is reached through one interface; UI never calls the channel directly.
+- Feature A does not import feature B's internals; go through a public entry point.
+
+Check with the audit tool's import-graph rules (`import-cycle`, `high-fan-out`) and `rg "^import 'package:flutter"` over the shared layer. Define the layers first from the existing project layout; do not impose new folders to satisfy the rule.

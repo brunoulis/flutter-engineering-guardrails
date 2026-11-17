@@ -78,3 +78,16 @@ For Dart/Flutter changes:
 - Before approval, CI must run format/analyze/test according to the type of change.
 - Performance claims without measurement and invented tests are not accepted.
 ```
+
+## CI test effectiveness (a green run is not proof tests ran)
+
+- A filtered command (`flutter test --name`, `--plain-name`, a path with no tests) can exit 0 while running zero tests. For new regression tests, confirm the test count or name appears in the output, or that it fails when the fix is reverted.
+- Map what CI actually covers: **built** (the target/flavor compiles), **tested** (which platform runs `flutter test`; web tests need `--platform chrome`), **integration** (`integration_test` on a device/emulator, not only widget tests), **release** (release/profile mode, obfuscation, `--split-debug-info`, minification for web) versus debug only. State each gap as `not run in CI`.
+- Do not claim a platform is verified because another one passed; conditional code (`kIsWeb`, `Platform.isX`, conditional imports) needs a run on each side.
+
+## Dependency and release integrity
+
+- Apps: commit `pubspec.lock`; CI installs from it (`flutter pub get --enforce-lockfile` where supported). Libraries: do not commit it.
+- Pin the Flutter version in CI (FVM, `flutter-version` or `.fvmrc`) and any code-generation tool versions; pin third-party GitHub Actions to a commit SHA.
+- Every `dependency_overrides`, git dependency or forked/patched package carries a comment: why, upstream issue, and the condition for removing it.
+- For shipped builds, keep a trace of what was built: resolved versions (`pubspec.lock`), build flags, and signing/notarization steps run. Never print signing keys or tokens in CI logs.

@@ -33,7 +33,7 @@ For pure Dart, start with [language and API contracts](references/dart-quality-a
 7. **R6 — Safe UI.** Respect constraints, accessibility, text scaling, keyboard/focus, responsive targets and the project's design tokens. Do not use `kIsWeb` as a screen-width breakpoint.
 8. **R7 — Performance is evidence-based.** Avoid obvious hot-path work, repeated I/O in builds and eager giant lists. Measure before claiming improvements or adding caches/isolates/rebuild optimization.
 9. **R8 — Security and privacy.** Do not hardcode secrets, expose tokens in logs or blindly trust remote JSON. Preserve authorization boundaries and minimize user-data logging.
-10. **R9 — Incremental diffs.** Change only what is needed. Separate mechanical formatting, bug fixes, behavioral changes and architectural work. Avoid unrelated rewrites or repo-wide auto-fixes by default.
+10. **R9 — Incremental diffs.** Change only what is needed; justify every file and every existing behavior the diff alters ([scope budget](references/refactor-execution.md)). Separate mechanical formatting, bug fixes, behavioral changes and architectural work. Avoid unrelated rewrites or repo-wide auto-fixes by default.
 11. **R10 — Verification.** Use the smallest sufficient set of formatter, analyzer, unit/widget/integration/regression tests; extend for risky changes. Report commands **actually run** and failures honestly.
 12. **R11 — Explain decisions.** Record *why* a boundary, provider or refactor is needed, alternatives rejected, compatibility/rollback risks and remaining uncertainty without excessive prose.
 
@@ -79,7 +79,10 @@ When ambiguous, use `audit` for diagnosis, `implement` for requested features, a
 | Migrating `StatefulWidget` to `StatelessWidget` + viewmodel (tabs, dialogs, forms) | [stateless-migration-and-ui-consistency](references/stateless-migration-and-ui-consistency.md) |
 | Adding or changing UI: match the app's existing design, keep animations/gestures | [ui-consistency](references/ui-consistency.md) |
 | Code review or technical debt report | `refactor-audit.md`, `anti-patterns-and-refactor-catalog.md`, `code-review-and-quality-score.md` |
-| Explicit limited refactor | `refactor-execution.md`, `testing-and-verification.md` |
+| Explicit limited refactor or bug fix (scope budget, fail-before/pass-after test) | `refactor-execution.md`, `testing-and-verification.md` |
+| Triaging findings from another agent/reviewer | `code-review-and-quality-score.md` |
+| Flutter app calls Rust/C/C++ or platform channels (FFI, flutter_rust_bridge, MethodChannel) | [native-bridge-contracts](references/native-bridge-contracts.md) |
+| Is CI really running the tests, pinned versions, release integrity | `quality-gates-and-ci.md` |
 | Migration / cross-project rewrite | `deep-refactor-and-migration.md`, `architecture-and-modularity.md` |
 | Jank, memory or Flutter web/desktop | `performance-and-web.md`, `async-lifecycle-and-errors.md` |
 | Auth, data handling, accessibility | `security-and-accessibility.md` |
@@ -116,7 +119,7 @@ Use the Dart/Flutter SDK tools directly, plus the skill's read-only Dart audit t
 ## Output contracts
 
 - `audit`: inventory, confirmed/probable/heuristic findings with `file:line`, severity, consequences, minimal correction, risk and validation plan; 0–3 initial actions justified by findings. A clean audit may recommend no changes. Use [audit template](templates/audit-report.md).
-- `implement`: what changed, why design fits project, behavior/edge cases, tests actually run, risks. Use compact write-up for trivial tasks.
+- `implement`: what changed, why design fits project, behavior/edge cases, tests actually run, risks. Include the Regression Surface Report ([refactor-execution](references/refactor-execution.md)). Use compact write-up for trivial tasks.
 - `refactor`: characterization before/after, preserved contracts, exact slice, test evidence, rollback and what was intentionally **not** refactored. Use [refactor template](templates/refactor-plan.md).
 - `deep-refactor`: problem evidence, 2+ viable options including **do nothing/incremental**, migration milestones, compatibility gates, cost/risk, fallback; implement only requested slices.
 

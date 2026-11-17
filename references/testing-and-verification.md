@@ -68,3 +68,9 @@ Residual risk: history/back for route /orders not checked manually
 ```
 
 Only print `PASS` if the agent ran the command and confirmed exit code 0.
+
+## Targeted regression test for a bug fix
+
+- Write the test that fails **before** the fix and passes **after**; run it both ways and report both results. A test that never failed proves nothing.
+- Size it to the bug: one small test at the lowest layer that reproduces it. No new fixtures, harnesses or mocking frameworks for a small correction unless the existing ones cannot express the case.
+- If the failure cannot be reproduced automatically, say so and record the manual scenario instead of inventing a test.

@@ -44,3 +44,10 @@ Tests: widget test 0/1/many rows + interaction.
 ```
 
 Never claim "30% faster" from static reading or from a reduced line count.
+
+## Operational performance (not only benchmarks)
+
+- **High-frequency events** (pointer moves, frames, socket/stream messages, progress ticks): never log or notify one-per-event. Sample, coalesce or rate-limit, and give the limit a number in code.
+- **Never block the event loop:** no synchronous file/process I/O, big `jsonDecode`, or CPU loops on the UI isolate or in an async server path; move to `Isolate.run`/`compute` or an async API.
+- **Bound everything that grows:** log files, in-memory queues, retry counters, caches. State the cap.
+- Record these as limits in the change description; verify with a counter or profile, not by reading the code.

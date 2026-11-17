@@ -60,3 +60,12 @@ Evidence only; each dimension lists its items and is graded independently. Do no
 | tests | logic classes (ViewModel/Repository/DataSource/Service/UseCase) whose file no test imports | actual coverage: an import is not coverage |
 
 Grade: 3 = no items, 2 = 1-2, 1 = 3-9, 0 = 10+, `N/E` = nothing to measure. The bands only let a report be compared with itself over time. Treat every item as a lead (see "confirmed / probable / heuristic").
+
+## Triage of findings from another agent or reviewer
+
+Do not accept every finding another agent produced. For each one, before changing code:
+
+1. **Reproduce** it (test, command, trace) or mark it *unverified*.
+2. **Own it:** does the defect belong to this change, or was it already there? Pre-existing defects are reported separately, not folded into the diff.
+3. **Cost the fix:** what else does the suggested change alter? A fix that breaks working behavior is worse than the finding.
+4. Close each as `fixed`, `rejected (reason)`, `deferred (ticket)` or `not reproducible`. Silence is not a verdict.

@@ -47,3 +47,9 @@
 - [ ] Unit/widget tests — commands and result
 - [ ] Integration/manual — actual conditions
 - [ ] Before/after metrics — measurements or "not measured"
+
+## 8. Regression surface (see `references/refactor-execution.md`)
+- Existing files modified (with reason):
+- Public contracts affected:
+- New mutable state and its owner:
+- Existing execution paths affected / verified:
