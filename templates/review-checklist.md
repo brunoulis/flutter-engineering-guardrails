@@ -1,6 +1,6 @@
 # Dart / Flutter PR / agent-generated code — review checklist
 
-> Mark YES / NO / N/A with evidence; do not check items automatically.
+> Record PASS / FAIL / UNVERIFIED / N/A with evidence and reasons; do not check items automatically. Confidence and review disposition are separate from verification status.
 
 Classify the package first. UI/state/navigation items are N/A for pure Dart; do not add Flutter dependencies or architecture to satisfy them.
 
@@ -38,8 +38,17 @@ Classify the package first. UI/state/navigation items are N/A for pure Dart; do 
 - [ ] Package/feature separation only with net benefit
 
 ## Verification
+- [ ] Base/candidate, dirty diff identity and compared range recorded; observed diff, inferred paths and exercised behavior distinguished
+- [ ] [Regression Surface Report](../references/refactor-execution.md#regression-surface-report-required-output-for-implement-and-refactor) links each file/reason/behavior/consumer/evidence; state has owner and failure/cancel/shutdown closure
+- [ ] Semantics/encoding/configuration/codegen reviewed even with unchanged signatures; actual [native consumer](../references/native-bridge-contracts.md) evidence or UNVERIFIED
+- [ ] Feature-off/conditional/unsupported behavior preserved, authorized to change, or UNVERIFIED; no cross-platform inference
 - [ ] Formatter/analyzer actually run (if available)
-- [ ] Relevant unit/widget tests and regressions
+- [ ] Relevant tests/regressions actually selected/executed, names/counts and fails-before/passes-after evidence (or explicit limit); zero/all-skipped/stale logs do not establish behavior
+- [ ] [Matrix](../references/testing-and-verification.md#verification-matrix) separates built/tested/integration/release with host OS, VM/widget/browser/device runtime, config/flavor/features, artifact identity and evidence freshness
 - [ ] Pre-existing failures distinguished from new ones
+- [ ] First solution/current candidate complexity and review dispositions linked under existing churn/triage; legitimate state remains justified
+- [ ] Log/event activation, frequency, cost and platform checked; rare/throttled use and already-isolated work assessed in context
 - [ ] Small changes; review and rollback feasible
 - [ ] Explicit report of what was not checked, no invented "all OK"
+
+Use equivalent compact prose and justified N/A for local low-risk changes. No new infrastructure or exhaustive matrix is needed for unaffected state/consumers/release. Audit mode remains read-only.

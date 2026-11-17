@@ -81,13 +81,15 @@ For Dart/Flutter changes:
 
 ## CI test effectiveness (a green run is not proof tests ran)
 
-- A filtered command (`flutter test --name`, `--plain-name`, a path with no tests) can exit 0 while running zero tests. For new regression tests, confirm the test count or name appears in the output, or that it fails when the fix is reverted.
-- Map what CI actually covers: **built** (the target/flavor compiles), **tested** (which platform runs `flutter test`; web tests need `--platform chrome`), **integration** (`integration_test` on a device/emulator, not only widget tests), **release** (release/profile mode, obfuscation, `--split-debug-info`, minification for web) versus debug only. State each gap as `not run in CI`.
+- For filtered commands (`flutter test --name`, `--plain-name` or a path), check the actual runner/SDK version, selected names/counts, executed/passed/failed/skipped/disabled counts and exit status. Do not assume empty-selection behavior is identical across versions. Zero/all-skipped tests do not verify a contract, even if exit is 0. Historical green logs need a demonstrated link to the current candidate and configuration.
+- Map what CI actually covers using the [verification matrix](testing-and-verification.md#verification-matrix): **built** (target/flavor compiles), **tested** (test kind and actual VM/browser runtime; web tests need `--platform chrome`), **integration** (real device/emulator/desktop boundary), **release** (release/profile mode, obfuscation, `--split-debug-info`, minification or native packaging) versus debug only. A host OS is a separate field from the tested runtime/target. Use PASS/FAIL/UNVERIFIED/N/A with reasons; required missing checks are UNVERIFIED.
 - Do not claim a platform is verified because another one passed; conditional code (`kIsWeb`, `Platform.isX`, conditional imports) needs a run on each side.
+
+This skill's current [workflow](../.github/workflows/skill-ci.yml) configures Ubuntu, macOS and Windows hosts for the Dart audit tool and the Flutter lifecycle example (`dart test` / `flutter test --no-pub`). This is configuration evidence, not proof those jobs ran for a candidate. It declares no Chrome browser test, device/desktop integration, native DLL load, or release/installer job. A green Windows widget-test job does not establish those dimensions.
 
 ## Dependency and release integrity
 
 - Apps: commit `pubspec.lock`; CI installs from it (`flutter pub get --enforce-lockfile` where supported). Libraries: do not commit it.
 - Pin the Flutter version in CI (FVM, `flutter-version` or `.fvmrc`) and any code-generation tool versions; pin third-party GitHub Actions to a commit SHA.
 - Every `dependency_overrides`, git dependency or forked/patched package carries a comment: why, upstream issue, and the condition for removing it.
-- For shipped builds, keep a trace of what was built: resolved versions (`pubspec.lock`), build flags, and signing/notarization steps run. Never print signing keys or tokens in CI logs.
+- For shipped builds, connect effective package/native dependency resolution and overrides to build flags, flavor/features, target/runtime, built/bundled/runtime-loaded artifacts and the consumer that exercised them. A lockfile alone does not prove the effective selection; Debug evidence for a different Release library leaves that identity/compatibility UNVERIFIED. Record signing/notarization only where product/policy requires it. Never print signing keys or tokens in CI logs.

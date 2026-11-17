@@ -14,7 +14,7 @@ The reviewer acts as a maintainer: looking for *real errors and future cost*, no
 
 ### Prioritized findings
 
-Order by **P0 to P3** (defined in `refactor-audit.md`). For each finding include location, scenario, impact, minimal change and the test that would prove the fix. Do not fill a review with cosmetic issues if there is a serious error.
+Order by **P0 to P3** (defined in `refactor-audit.md`). For each finding include location, trigger/mechanism and consequence, evidence/confidence, attribution (introduced / pre-existing / unknown), minimal change and the test that would prove the fix. A reviewer label alone establishes neither severity nor attribution. Distinguish observed diff, code inference and test/trace evidence. Pre-existing debt can be serious without becoming a regression or requiring unrelated scope expansion.
 
 ## Multidimensional quality (optional, not a magic number)
 
@@ -65,7 +65,9 @@ Grade: 3 = no items, 2 = 1-2, 1 = 3-9, 0 = 10+, `N/E` = nothing to measure. The 
 
 Do not accept every finding another agent produced. For each one, before changing code:
 
-1. **Reproduce** it (test, command, trace) or mark it *unverified*.
+1. **Reproduce** it (test, command, trace) or mark it UNVERIFIED with the missing evidence/question. Record the reviewer/source and candidate reviewed; repeated review is not evidence by itself.
 2. **Own it:** does the defect belong to this change, or was it already there? Pre-existing defects are reported separately, not folded into the diff.
 3. **Cost the fix:** what else does the suggested change alter? A fix that breaks working behavior is worse than the finding.
-4. Close each as `fixed`, `rejected (reason)`, `deferred (ticket)` or `not reproducible`. Silence is not a verdict.
+4. Record a disposition with evidence: **corrected/verified**, **legitimate use**, **accepted in-scope limit**, or **investigation pending** with the open question and next evidence. A rejected finding needs a reason; a deferred finding needs its limit/owner or tracking reference. “Not reproduced” is not “refuted”. Silence is not a verdict.
+
+Link dispositions to the [Regression Surface Report and revision evolution](refactor-execution.md#regression-surface-report-required-output-for-implement-and-refactor). New state justified by a real contract is valid; flags patching prior flags require reconsideration rather than automatic rejection by LOC. State unresolved required checks separately from accepted limits and use the [verification statuses](testing-and-verification.md#verification-matrix). Say when review was only self-review/documentary inspection; do not imply independent execution.

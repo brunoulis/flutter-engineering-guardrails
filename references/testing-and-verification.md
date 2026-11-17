@@ -57,17 +57,26 @@ Include `bin` when CLI entry points are touched. Dependency preparation is a sep
 - Analyze flaky tests for synchronization, clock, animations, mock dependencies and pending async.
 - In CI, separate mandatory checks from the heuristic report (which can have false positives).
 
-## Honest verification report
+## Verification matrix
 
-```text
-Format: PASS — dart format --output=none --set-exit-if-changed lib test
-Analyzer: PASS — flutter analyze
-Tests: PASS — flutter test test/features/order_flow_test.dart
-Integration: NOT RUN — requires browser/test credentials
-Residual risk: history/back for route /orders not checked manually
-```
+Use `PASS` (required check executed successfully for the identified candidate and scope), `FAIL` (observed failure), `UNVERIFIED` (missing, stale, conflicting or insufficient evidence), or `N/A` (outside this change, with reason). Confidence in a finding is separate from its verification status. Preserve a runner failure as FAIL while the unexercised contract remains UNVERIFIED. A successful exit alone is insufficient for a behavioral PASS.
 
-Only print `PASS` if the agent ran the command and confirmed exit code 0.
+| Contract/scenario | Dimension (built / tested / integration / release) | Package/test kind, host OS, target/runtime, config/flavor/feature and artifact identity | Exact command/job | Selected / executed / passed / failed / skipped / disabled | Result (PASS/FAIL/UNVERIFIED/N/A), reason | Evidence location, date and candidate freshness |
+|---|---|---|---|---|---|---|
+
+Identify base and candidate revisions (including dirty diff), actual Dart/Flutter SDK and effective dependency resolution. Link each log to that candidate, command and configuration; historical evidence can be reused only with a stated reason it still applies. Unknown counts stay unknown; non-test rows use N/A. Check selected names/counts and real execution, including all-skipped/disabled suites. Zero selected/executed tests, all-skipped tests, unavailable consumers and stale logs leave the contract UNVERIFIED; verify the runner/version's actual behavior rather than assuming every Flutter release handles empty selections alike.
+
+Keep dimensions separate. The following are **illustrative unexecuted rows**, not results:
+
+| Scenario | Dimension | Required distinction | Status without execution |
+|---|---|---|---|
+| Cancellation unit/widget test on Windows host | tested | Dart VM / Flutter test environment, exact SDK and debug test setup; no Windows native library implied | UNVERIFIED |
+| Same conditional code in Chrome | tested | Browser runtime/renderer and actual `--platform chrome` selection; JS/Wasm configuration where applicable | UNVERIFIED |
+| Plugin call on device or Windows desktop | integration | Actual device/desktop runtime, plugin implementation, loaded library identity and flavor/feature | UNVERIFIED |
+| App build with feature disabled | built | Target, flavor, feature defines and compiler mode; build alone does not execute the disabled path | UNVERIFIED |
+| Release DLL/app/installer | release | Built, bundled and runtime-loaded artifact identities, release flags and load/install smoke evidence | UNVERIFIED |
+
+A widget test job hosted on Windows does not by itself exercise a Windows DLL or installer. A build does not prove integration, and debug tests do not validate a different release artifact. Record partial coverage and required outstanding checks explicitly. For a documentation-only/local change with no relevant distribution or runtime behavior, use compact justified N/A entries; do not run unrelated SDK suites.
 
 ## Targeted regression test for a bug fix
 

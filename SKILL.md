@@ -118,9 +118,11 @@ Use the Dart/Flutter SDK tools directly, plus the skill's read-only Dart audit t
 
 ## Output contracts
 
-- `audit`: inventory, confirmed/probable/heuristic findings with `file:line`, severity, consequences, minimal correction, risk and validation plan; 0–3 initial actions justified by findings. A clean audit may recommend no changes. Use [audit template](templates/audit-report.md).
+- `audit`: inventory, confirmed/probable/heuristic findings with `file:line`, severity, trigger/consequence, attribution (introduced/pre-existing/unknown), disposition, minimal correction, risk and validation plan; 0–3 initial actions justified by findings. Remain read-only in the audited project; a clean audit may recommend no changes. Use [audit template](templates/audit-report.md).
 - `implement`: what changed, why design fits project, behavior/edge cases, tests actually run, risks. Include the Regression Surface Report ([refactor-execution](references/refactor-execution.md)). Use compact write-up for trivial tasks.
 - `refactor`: characterization before/after, preserved contracts, exact slice, test evidence, rollback and what was intentionally **not** refactored. Use [refactor template](templates/refactor-plan.md).
 - `deep-refactor`: problem evidence, 2+ viable options including **do nothing/incremental**, migration milestones, compatibility gates, cost/risk, fallback; implement only requested slices.
+
+Identify base/candidate and dirty diff; distinguish observed change surface, inferred paths and exercised behavior. Reuse the existing [Regression Surface Report and churn control](references/refactor-execution.md#regression-surface-report-required-output-for-implement-and-refactor), [review dispositions](references/code-review-and-quality-score.md#triage-of-findings-from-another-agent-or-reviewer) and [verification matrix](references/testing-and-verification.md#verification-matrix). Use PASS/FAIL/UNVERIFIED/N/A with reasons, actual test counts and fresh evidence tied to candidate/configuration/artifact. Host OS, VM/widget/browser/device integration and release are separate claims. Keep local low-risk deliveries compact with justified N/A; no infrastructure or JSON/SARIF migration is required for these documentary fields.
 
 When assigning a score, **never invent metrics**. Mark dimensions `not measured` or `needs verification` where evidence is absent. For major changes, explicitly ask whether the work will make the repository easier for the *next* maintainer.

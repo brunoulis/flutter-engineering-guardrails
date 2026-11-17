@@ -81,19 +81,23 @@ A fix that keeps growing is a signal, not progress. Pause and reconsider the app
 - add a new category of state (e.g. a "pending" or "retrying" flag next to existing loading/error);
 - grow the diff well beyond the original bug, or need exceptions for special cases.
 
-Then: compare initial vs current complexity (new state, new dependencies, new abstractions, not just lines), revert the part that did not help, or fix the root cause instead. Do not present a hypothetical problem as a confirmed defect, and do not add a layer to patch the previous layer.
+Then: compare the first solution with the current candidate (added/removed state, dependencies, abstractions and lifecycle rules), link the motivating review findings and their [dispositions](code-review-and-quality-score.md#triage-of-findings-from-another-agent-or-reviewer), and justify what remains. Compare simplification, local correction and structural change; revert the part that did not help, or fix the root cause instead. Necessary new state is valid when its contract and ownership are demonstrated. LOC growth or review count alone decides nothing. If there is no earlier candidate, identify the starting proposal rather than inventing history. Do not present a hypothetical problem as a confirmed defect, and do not add a layer to patch the previous layer.
 
 ## Regression Surface Report (required output for `implement` and `refactor`)
 
-Fill from the diff, not from memory. Mark each line `confirmed` (test/trace) or `to verify`.
+Fill from the actual diff. Record base and candidate revisions, dirty diff identity, compared range and existing local changes preserved. Separate **observed diff**, **inferred paths** and **exercised behavior**: a file count is not a coverage denominator, and reading a branch is not executing it. Use `PASS`, `FAIL`, `UNVERIFIED` or `N/A` with a reason under the [verification rules](testing-and-verification.md#verification-matrix).
 
-```text
-Existing files modified: 3 (path — reason each)
-Public contracts affected (exports, routes, serialization): 0
-New mutable state (fields, controllers, subscriptions): 1 — owner: X, disposed in: Y
-Existing execution paths affected: 2 (e.g. cancel while loading, back navigation)
-Paths with a test that failed before / passes after: 1 of 2
-Feature-flag/disabled/other-platform behavior preserved: confirmed | to verify
-```
+| Existing/new file | Why changed | Behavior/contract before → after | Affected consumer/path | Verification evidence or gap |
+|---|---|---|---|---|
+
+- Public contracts affected: exports, routes, serialization, **semantics, ordering, errors and encoding even when signatures stay the same**. Use [native bridge contracts](native-bridge-contracts.md) for Rust/C/C++/channels/Pigeon where applicable.
+- New/changed mutable state or resource → owner/mutator → invalidation/reset/cancel/awaited close/dispose; necessity, failure and shutdown behavior. No new state: justified N/A.
+- Affected scenario inventory and denominator, if established; list paths inferred from inspection separately from paths actually exercised.
+- Bug regression that fails before/passes after: both identities and evidence, or unavailable/unsafe reason and limit. Characterization/new-feature checks state their different objective.
+- Feature-off, conditional imports and other supported platform/flavor behavior: evidence, intentional authorized change, or UNVERIFIED.
+- First solution → current candidate: use the existing churn control above; link review dispositions rather than repeat the review.
+- Verification: link the [matrix](testing-and-verification.md#verification-matrix), including artifact identity and log freshness; performance/log claims use [operational evidence](performance-and-web.md#operational-performance-not-only-benchmarks).
+
+Use the same slots in a compact paragraph for a local low-risk change. Unaffected external consumers, release and state can be N/A with a reason; do not add infrastructure to fill the report. These are documentary fields, not a required JSON/SARIF schema migration. Audit mode remains read-only and reports the observed surface or proposed scope without editing the audited project.
 
 Duplicating a few lines to leave a delicate, working path untouched is acceptable for a bug fix; it is not a license to avoid a refactor when the debt is demonstrated.
