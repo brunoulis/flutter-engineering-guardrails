@@ -76,6 +76,8 @@ When ambiguous, use `audit` for diagnosis, `implement` for requested features, a
 | Dart language/API evidence, community claims or executable counterexamples | [Dart evidence](references/dart-evidence.md) |
 | New feature or architectural decision | `discovery-and-context.md`, `architecture-and-modularity.md`, `dart-quality-and-types.md` |
 | Widgets, Provider/ViewModel, forms, navigation or responsive layout | `ui-state-and-layout.md`, `async-lifecycle-and-errors.md` |
+| Migrating `StatefulWidget` to `StatelessWidget` + viewmodel (tabs, dialogs, forms) | [stateless-migration-and-ui-consistency](references/stateless-migration-and-ui-consistency.md) |
+| Adding or changing UI: match the app's existing design, keep animations/gestures | [ui-consistency](references/ui-consistency.md) |
 | Code review or technical debt report | `refactor-audit.md`, `anti-patterns-and-refactor-catalog.md`, `code-review-and-quality-score.md` |
 | Explicit limited refactor | `refactor-execution.md`, `testing-and-verification.md` |
 | Migration / cross-project rewrite | `deep-refactor-and-migration.md`, `architecture-and-modularity.md` |
