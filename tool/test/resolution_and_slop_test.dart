@@ -113,6 +113,57 @@ class S {
     },
   );
 
+  test(
+    'setState must resolve to Flutter State and receive a Future callback',
+    () async {
+      await put('pubspec.yaml', 'name: t\nenvironment:\n  sdk: ^3.0.0\n');
+      await put(
+        '.dart_tool/package_config.json',
+        '''{"configVersion":2,"packages":[
+      {"name":"t","rootUri":"../","packageUri":"lib/","languageVersion":"3.0"},
+      {"name":"flutter","rootUri":"../flutter/","packageUri":"lib/","languageVersion":"3.0"}
+    ]}''',
+      );
+      await put(
+        'flutter/lib/src/widgets/framework.dart',
+        'class State<T> { void setState(void Function() fn) { fn(); } }',
+      );
+      await put('lib/s.dart', '''
+import 'package:flutter/src/widgets/framework.dart' as fw;
+class Base extends fw.State<int> {}
+class View extends Base {
+  Future<void> work() async {}
+  void test() {
+    setState(() async {});
+    this.setState(work);
+    super.setState(() => work());
+    setState(() {});
+    setState(() { work(); });
+    setState(() async* { yield 1; });
+  }
+}
+class Other {
+  Future<void> setState(Future<void> Function() fn) => fn();
+  Future<void> update() => setState(() async {});
+}
+class Local extends fw.State<int> {
+  @override
+  void setState(void Function() fn) {}
+  void update() => setState(() async {});
+}
+void unresolved(dynamic x) => x.setState(() async {});
+''');
+      final report = await audit(resolve: true);
+      expect(report.resolution, 'resolved');
+      final hits = report.findings.where(
+        (f) => f.rule == 'setstate-async-callback',
+      );
+      expect(hits.map((f) => f.line), [6, 7, 8]);
+      expect(hits.map((f) => f.basis), everyElement('resolved-types'));
+      expect(hits.map((f) => f.priority), everyElement('P1'));
+    },
+  );
+
   group('anti-slop score', () {
     Future<SlopDimension> dim(String name) async {
       final r = await audit(score: true);

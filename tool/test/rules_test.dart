@@ -49,9 +49,32 @@ class S extends State<W> {
       final hit = findings.singleWhere(
         (f) => f.rule == 'setstate-async-callback',
       );
-      expect(hit.priority, 'P1');
+      expect(hit.priority, 'P2');
+      expect(hit.basis, 'syntax-tree');
       expect(hit.line, 3);
     });
+
+    test(
+      'ignores unrelated methods and async generators in syntax-only scans',
+      () {
+        expect(
+          _rules('''
+class Store {
+  Future<void> setState(Future<void> Function() fn) => fn();
+  Future<void> update() => setState(() async {});
+}
+class View extends State<W> {
+  void test() { setState(() async* { yield 1; }); }
+}
+class Custom extends State<W> {
+  void setState(void Function() fn) { fn(); }
+  void test() { setState(() async {}); }
+}
+'''),
+          isNot(contains('setstate-async-callback')),
+        );
+      },
+    );
 
     test('ignores a synchronous setState callback', () {
       expect(

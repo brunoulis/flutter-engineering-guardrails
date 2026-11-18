@@ -12,16 +12,18 @@
 - Available tests and checks run (with output):
 - Out of scope:
 
-## Current state (no invented diagnoses)
-- Confirmed findings:
-- Probable findings:
-- Heuristic signals pending inspection:
+## Confirmed defects
 
-## Prioritized findings
+Record each reachable failure once. If none was established, say so and summarize what was checked.
+
 | ID | P0–P3 / confidence | File:line | Trigger/mechanism and consequence | Attribution (introduced / pre-existing / unknown) | Evidence | Minimal change / risk | Disposition and reason |
 |---|---|---|---|---|---|---|---|
 
 Use [review dispositions](../references/code-review-and-quality-score.md#triage-of-findings-from-another-agent-or-reviewer): corrected/verified, legitimate use, accepted in-scope limit, or investigation pending with question/evidence. A reviewer's severity label is not proof.
+
+## Open leads
+
+Include only material uncertainties. Name the missing evidence or the check that would settle each one. Exclude these from the confirmed count.
 
 ## Observed or proposed change surface
 

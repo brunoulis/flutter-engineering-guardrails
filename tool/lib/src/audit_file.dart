@@ -3,6 +3,8 @@ import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/source/line_info.dart';
 
@@ -84,7 +86,13 @@ FileAudit auditSource(
       ? sourceLines.length - 1
       : sourceLines.length;
 
-  final collector = _Collector(path, content, lineInfo, indexedDisposables);
+  final collector = _Collector(
+    path,
+    content,
+    lineInfo,
+    indexedDisposables,
+    resolved != null,
+  );
   unit.accept(collector);
 
   for (var i = 0; i < sourceLines.length; i++) {
@@ -121,12 +129,19 @@ FileAudit auditSource(
 }
 
 final class _Collector extends RecursiveAstVisitor<void> {
-  _Collector(this.path, this.content, this.lineInfo, this.indexed);
+  _Collector(
+    this.path,
+    this.content,
+    this.lineInfo,
+    this.indexed,
+    this.resolved,
+  );
 
   final String path;
   final String content;
   final LineInfo lineInfo;
   final Set<String> indexed;
+  final bool resolved;
   final findings = <Finding>[];
   final navigation = <String, int>{};
 
@@ -264,22 +279,7 @@ final class _Collector extends RecursiveAstVisitor<void> {
     final name = node.methodName.name;
     final target = node.realTarget;
 
-    if (name == 'setState' &&
-        (target == null || target is ThisExpression) &&
-        !node.isCascaded) {
-      final first = node.argumentList.arguments.firstOrNull?.argumentExpression;
-      if (first is FunctionExpression && first.body.isAsynchronous) {
-        _add(
-          node,
-          rule: 'setstate-async-callback',
-          priority: 'P1',
-          title: 'setState() receives an async callback',
-          check:
-              'Await outside setState, check `mounted`, then update state '
-              'synchronously (Flutter asserts on a Future-returning callback).',
-        );
-      }
-    }
+    if (name == 'setState') _auditSetState(node);
 
     if (name == 'periodic' &&
         target is SimpleIdentifier &&
@@ -318,6 +318,66 @@ final class _Collector extends RecursiveAstVisitor<void> {
     }
     _auditCreationInBuild(node);
     super.visitMethodInvocation(node);
+  }
+
+  void _auditSetState(MethodInvocation call) {
+    if (call.argumentList.arguments.length != 1) return;
+    final callback = _unwrap(
+      call.argumentList.arguments.single.argumentExpression,
+    );
+    final literalAsync =
+        callback is FunctionExpression &&
+        callback.body.isAsynchronous &&
+        !callback.body.isGenerator;
+
+    if (resolved) {
+      final method = call.methodName.element?.baseElement;
+      if (method is! MethodElement ||
+          method.enclosingElement?.name != 'State' ||
+          method.library.uri.toString() !=
+              'package:flutter/src/widgets/framework.dart') {
+        return;
+      }
+      final type = callback.staticType;
+      if (!literalAsync &&
+          !(type is FunctionType && _isFuture(type.returnType)) &&
+          !_returnsFutureExpression(callback)) {
+        return;
+      }
+    } else {
+      final receiver = call.realTarget;
+      if (!literalAsync ||
+          call.isCascaded ||
+          (receiver != null &&
+              receiver is! ThisExpression &&
+              receiver is! SuperExpression)) {
+        return;
+      }
+      final owner = call.thisOrAncestorOfType<ClassDeclaration>();
+      if (owner == null ||
+          owner.extendsClause?.superclass.name.lexeme != 'State') {
+        return;
+      }
+      if (receiver is! SuperExpression &&
+          owner.body.members.whereType<MethodDeclaration>().any(
+            (m) => m.name.lexeme == 'setState',
+          )) {
+        return;
+      }
+    }
+
+    _add(
+      call,
+      rule: 'setstate-async-callback',
+      priority: resolved ? 'P1' : 'P2',
+      basis: resolved ? 'resolved-types' : 'syntax-tree',
+      title: resolved
+          ? 'Flutter State.setState receives a Future-returning callback'
+          : 'Possible async callback on State.setState',
+      check:
+          'Verify the callback result on a mounted widget. Flutter debug builds '
+          'assert when State.setState receives a Future result.',
+    );
   }
 
   @override
@@ -572,6 +632,17 @@ final class _NameCollector extends RecursiveAstVisitor<void> {
   @override
   void visitSimpleIdentifier(SimpleIdentifier node) => names.add(node.name);
 }
+
+bool _isFuture(DartType? type) =>
+    type != null &&
+    type.isDartAsyncFuture &&
+    type.nullabilitySuffix == NullabilitySuffix.none;
+
+bool _returnsFutureExpression(Expression callback) => switch (callback) {
+  FunctionExpression(body: ExpressionFunctionBody(:final expression)) =>
+    _isFuture(expression.staticType),
+  _ => false,
+};
 
 Expression _unwrap(Expression e) => switch (e) {
   ParenthesizedExpression(:final expression) => _unwrap(expression),

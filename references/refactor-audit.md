@@ -4,6 +4,14 @@
 
 **FORBIDDEN: editing, formatting or running auto-fixes.** You may read, run non-mutating analysis tools and propose a plan. Distinguish a demonstrated finding from a risk identified by inspection.
 
+### Confirm a defect
+
+Trace a reachable entry point on the audited revision. Identify the owner or resolved API, the input or event order, the expected behavior, and the first observable divergence. Prefer an existing failing test or trace. When execution is unavailable, cite the exact code and contract that require that outcome, and say which part you established by inspection.
+
+When a failure needs an unusual caller, callback, input or dependency, locate it in the audited paths or show where the public contract explicitly requires supporting it. A type signature that permits inventing such an implementation does not establish that it occurs. If a test uses a stand-in, identify the observed behavior or documented contract it represents.
+
+Challenge the diagnosis with its nearest valid case, such as transferred ownership, a cached future, a different method with the same name, or a guard that prevents the failing path. Close a disproved lead. Keep unresolved leads separate from the defect count and state the evidence needed only when it matters. At completion, name the packages, paths and runtime modes actually covered, plus any material skipped or unresolved scope. Zero confirmed defects is a valid result.
+
 ### Initial inventory
 
 - Scope: package(s), features, tests, `analysis_options.yaml`, state/routing/serialization, known debt.
@@ -34,18 +42,7 @@
 - **P2 / medium:** maintenance, testability, real duplication, fragility.
 - **P3 / low:** cosmetic, names or micro-duplications without impact.
 
-Evidence for each finding:
-
-```text
-ID: FL-007
-Level: P1 | Confidence: probable
-File: lib/features/orders/order_view_model.dart:123
-Signal: a late response can overwrite a later search.
-Consequence: data from another search is displayed.
-Test: A→B test with controlled Futures, B completes before A.
-Minimal fix: discard the stale generation inside the existing ViewModel.
-Change risk: low / affects only that flow.
-```
+For each confirmed defect, cite the file and line, reachable trigger, expected behavior and observed or statically inevitable outcome. Identify the test, trace or code path that establishes it. Describe the smallest correction supported by that evidence.
 
 **Confidence:** `confirmed` = test, stack trace, reproduction or unambiguous diagnosis; `probable` = specific reasoning about the real flow; `heuristic` = static search or lint pattern not yet confirmed. **Never mark "confirmed leak" based on a controller's name.**
 
@@ -63,7 +60,7 @@ Change risk: low / affects only that flow.
    | `discarded_futures` / `unawaited_futures` | futures dropped without `await` or `unawaited` |
    | `avoid_dynamic_calls` | member access on `dynamic`, typical of raw `Map<String, dynamic>` handling |
 
-2. **Audit tool** for the rules no lint covers. It parses each file with `package:analyzer` (syntax tree, no type resolution) and never modifies the project:
+2. **Audit tool** for the rules no lint covers. It parses each file with `package:analyzer` and uses resolved elements and types when the package configuration is available. It never modifies the project:
 
    ```bash
    # optional: the first `dart run` does this by itself (needs network unless cached)
@@ -75,7 +72,7 @@ Change risk: low / affects only that flow.
 
    | Rule | Priority | Flags | Does not flag |
    |---|---|---|---|
-   | `setstate-async-callback` | P1 | `setState(() async { ... })` | synchronous callbacks |
+   | `setstate-async-callback` | P1 resolved, P2 syntax only | A call bound to Flutter `State.setState` with an async closure or a provable non-null `Future` callback result, including method tear-offs. The assertion runs in debug builds. Without resolution, only a literal async closure in an apparent direct `State` subclass is a lead. | Resolved unrelated methods, dynamic receivers and synchronous callbacks returning void. A callback typed only as `VoidCallback` may hide a future at runtime. |
    | `undisposed-controller` | P2 | a field the class itself fills with a disposable (`TextEditingController`, `ScrollController`, `PageController`, `AnimationController`, `TabController`, `FocusNode`, `ValueNotifier`, …), in its declaration or by assignment, with no `.dispose()` on it and no reference to it inside `dispose()`/`close()`/`onClose()` | controllers injected through the constructor; disposal via `?.`, cascades or a list iterated in `dispose()` |
    | `controller-created-in-build` | P2 | a disposable constructed inside `build()`, including replacement of a field whose final value is disposed later | lazy `field ??= ...` initialization; assignment immediately preceded by a direct `.dispose()` of that reference in the same block; these syntactic exceptions still need ownership/state review |
    | `future-created-in-build` | P2 | `FutureBuilder(future: load())` / `StreamBuilder(stream: watch())` inside `build()` | a stored field, `_f ??= load()`, builders outside `build()` |
@@ -85,7 +82,7 @@ Change risk: low / affects only that flow.
    | `filewide-lint-suppression` | P3 | `// ignore_for_file:` comments | the same text inside strings |
    | `large-dart-file` | P3 | files over `--large-file-lines` (default 700) | |
 
-   The JSON report keeps `confidence: "heuristic"` and adds `basis: "syntax-tree"`, `parse_errors` (files with syntax errors are still audited) and `skipped`. Exit code 0 means a report was produced, whatever it contains; 64 is a usage error.
+   The JSON report keeps `confidence: "heuristic"` and records the evidence basis for each finding (`syntax-tree` or `resolved-types` for the callback rule), `parse_errors` (files with syntax errors are still audited) and `skipped`. Exit code 0 means a report was produced, whatever it contains; 64 is a usage error.
 
 3. **Fallback: targeted search** when the audit tool cannot run (no network for the first `dart pub get`, Dart older than 3.13) or for ad-hoc follow-up questions. Use `rg` (ripgrep), run from the package root. Check `rg --version` first; if it is missing, use `git grep` and suggest installing ripgrep (see the README). The regexes below work unchanged in both. Always exclude generated files (`*.g.dart`, `*.freezed.dart`, `*.gr.dart`, `*.mocks.dart`); `--type dart` with `lib` (and `test` when relevant) already keeps platform folders out.
 
@@ -99,7 +96,7 @@ Change risk: low / affects only that flow.
 
    | Signal | Pattern (ERE) | Then verify |
    |---|---|---|
-   | `async` callback inside `setState` | `setState\([[:space:]]*\([[:space:]]*\)[[:space:]]*async` | Move `await` out of `setState`; check `mounted` (P1) |
+   | `async` callback inside `setState` | `setState\([[:space:]]*\([[:space:]]*\)[[:space:]]*async` | Identify the actual receiver and callback return value. Confirm the Flutter debug assertion on a mounted widget. |
    | Future created in `build` | `future:[[:space:]]*[A-Za-z0-9_.]+\(` | Is the hit inside `build()`? Is the `Future` cached in state? (P2) |
    | Possibly undisposed controller | `(TextEditingController\|ScrollController\|PageController\|AnimationController\|TabController\|FocusNode)\(` | Compare the hit files (`rg -l`) with files that never call dispose (`rg --files-without-match '\.dispose\(' --type dart lib`); files on both lists are leads. Confirm the real owner (P2) |
    | Periodic timer | `Timer\.periodic\(` | Is it stored and cancelled in `dispose`/`close`? (P2) |
@@ -109,7 +106,7 @@ Change risk: low / affects only that flow.
 
    In the table, `\|` is an escaped pipe for Markdown; write `|` in the actual regex. Run the two dispose searches as separate commands and compare their output: piping one `rg` into another is shell-dependent on Windows (backslash paths).
 
-- Audit-tool findings are **heuristic leads**: the tool sees syntax, not types, so a subclass of a controller or ownership handed to another file is invisible to it. Search hits are weaker still: they do not parse Dart, so expect false positives (comments, strings, ownership held elsewhere) and false negatives.
+- Audit-tool findings are **heuristic leads**: resolution can identify an API and its types. Establish reachability and ownership from the caller and surrounding code. Search hits are weaker still: they do not parse Dart, so expect false positives (comments, strings, ownership held elsewhere) and false negatives.
 - Neither lints nor searches replace instrumentation, tests or ownership inspection.
 - Do not assign "quality" percentages based on the number of findings.
 

@@ -208,7 +208,7 @@ dart fix --dry-run
 
 Pass only existing directories to the formatter and include `bin` for CLI changes. If adopting additional lints, choose the [Dart template](templates/analysis_options_dart.yaml) (`package:lints`) or [Flutter template](templates/analysis_options.yaml) (`flutter_lints`). Check installed versions, preserve existing settings and measure the baseline before merging a requested configuration (see `references/quality-gates-and-ci.md`). Neither template is an automatic dependency installation or migration.
 
-Rules no lint covers (undisposed controllers, controllers or futures created in `build`, `setState(() async`, uncancelled `Timer.periodic`, mixed navigation APIs, file-wide suppressions, large files) are checked by the audit tool. Run it from the root of the Flutter project (`<skill>` is the folder where you installed the skill):
+Rules no lint covers (undisposed controllers, controllers or futures created in `build`, Future-returning callbacks passed to Flutter `State.setState`, uncancelled `Timer.periodic`, mixed navigation APIs, file-wide suppressions, large files) are checked by the audit tool. Run it from the root of the Flutter project (`<skill>` is the folder where you installed the skill):
 
 ```bash
 dart run <skill>/tool/bin/flutter_rails_audit.dart --root .
@@ -237,12 +237,19 @@ See `references/sources-and-rationale.md` for where the recommendations come fro
 
 ## Validation
 
+On Flutter 3.50.0 in debug widget tests, three callbacks in [the regression fixture](examples/async_lifecycle/test/set_state_callback_test.dart) trigger the framework's Future-result assertion. A synchronous update after awaited work and a separate asynchronous API named `setState` both succeed. With the example's locked dependencies resolved, the auditor reports just the three failing calls. In syntax-only mode it reports the inline async closure as a lead. To repeat from the repository root after resolving the tool and example dependencies:
+
+```bash
+(cd examples/async_lifecycle && flutter test --no-pub test/set_state_callback_test.dart)
+dart run tool/bin/flutter_rails_audit.dart --root examples/async_lifecycle --path test/set_state_callback_test.dart --format json
+```
+
 **2026-11-14, Windows x64, Flutter 3.50 / Dart 3.14, analyzer 14.7.0:**
 
 - The lints in `templates/analysis_options.yaml` resolve with no unknown-rule warnings and each fires on a probe file that reproduces the old Rust scanner's rules. The fallback search patterns match the remaining cases on the same file with both ripgrep 15.2.0 and `git grep`.
 - `flutter_rails_audit`: 68 unit/CLI tests pass (`dart test`), `dart analyze` is clean.
 - On the Flutter framework (`packages/flutter`, 679 files, 527k lines, ~10 s including JIT startup): 0 syntax errors and 3 ownership leads, each worth a look. Two are app-lifetime `ValueNotifier`s in bindings and one is a fallback `ValueNotifier` created in `build()`. A false positive found in this run (a field controller reassigned in `build()` and disposed correctly) was fixed and covered by a test.
-- On the Flutter Gallery app (`dev/integration_tests/flutter_gallery`, 102 files): 10 ownership leads, and all 10 were confirmed by reading the source (controllers whose files never call `dispose`, and a `TextEditingController` built inside `build()`).
+- On the Flutter Gallery app (`dev/integration_tests/flutter_gallery`, 102 files): source inspection identified 10 ownership leads involving controllers without a local `dispose` call or a `TextEditingController` constructed in `build()`. Establishing a leak would also require tracing ownership and showing that the resource outlives its intended lifetime.
 
 ## Contributing
 
